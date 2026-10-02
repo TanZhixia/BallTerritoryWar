@@ -96,7 +96,7 @@ ffmpeg 可选（缺失则录像静默失效，游戏本身照常运行）。两�
 | `-u` / `--unlimited` | 不限帧（IMMEDIATE 呈现；录制时关闭 MSAA） |
 | `-nr` / `--no-record` | 不录制视频 |
 | `-nm` / `--no-music` | 不混入 `~/.ball/music` 的背景音乐 |
-| `-o` / `--output <文件>` | 录像输出路径（默认 output.mp4） |
+| `-o` / `--output <文件>` | 录像输出路径（默认 output.mp4；**缺扩展名会自动补 .mp4**，否则 ffmpeg 无法判断封装格式而放弃录制） |
 | `-d` / `--duration <秒>` | 运行指定秒数后正常收尾退出 |
 | `--max-frames <N>` | 运行 N 帧后退出（0 = 不限） |
 | `--no-weapon-lift` | 关闭 ×8/×4/×2 与霰弹/狙击列的升力（中间升力保留） |

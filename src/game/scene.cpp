@@ -214,7 +214,7 @@ void GetColorBlockCenter(int color_index, float &x, float &y)
 
 // 机械区的固定阻挡圆阵（全部为小圆点，半径 = 物理球半径的一半）：
 //   * 乘法带以上（顶部边框 y=20 ~ 乘法带上沿 y=390）三排，居中平摊
-//   * 乘法带以下（下沿 y=430 起 200px 之后 ~ 武器栏 y=980 之前）六排，等间距平摊
+//   * 乘法带以下（下沿 y=430 起 200px 之后）四排，排间距 65px
 // 两处的排间距都是 65px，逐排横向错开 40px（交替排列），列间距 80px。
 void GetBlockingCircles(std::vector<StaticCircle> &circles)
 {
@@ -239,16 +239,13 @@ void GetBlockingCircles(std::vector<StaticCircle> &circles)
         }
     }
 
-    // ---------- 乘法带以下：6 排，从带下 200px 到武器栏之前平摊 ----------
+    // ---------- 乘法带以下：4 排，从带下 200px 起，排间距与上方一致 ----------
     constexpr float BAND_BOTTOM = 430.0f;     // 乘法带下沿
     constexpr float GAP_BELOW_BAND = 200.0f;  // 第一排与乘法带的距离
     constexpr float FIELD_TOP = BAND_BOTTOM + GAP_BELOW_BAND;
-    constexpr float FIELD_BOTTOM = 955.0f;    // 底部武器栏（980）稍前
-    constexpr int LOWER_ROWS = 6;
-    const float lower_step =
-        (FIELD_BOTTOM - FIELD_TOP) / static_cast<float>(LOWER_ROWS - 1);
+    constexpr int LOWER_ROWS = 4;  // 原本 6 排，去掉最下面两排
     for (int row = 0; row < LOWER_ROWS; ++row) {
-        const float row_y = FIELD_TOP + static_cast<float>(row) * lower_step;
+        const float row_y = FIELD_TOP + static_cast<float>(row) * DOT_ROW_SPACING;
         const float start_x = (row % 2 == 0) ? 60.0f : 20.0f;  // 逐排交错 40px
         for (float x = start_x; x <= 580.0f; x += COL_SPACING) {
             circles.push_back(StaticCircle{x, row_y, dot_radius});

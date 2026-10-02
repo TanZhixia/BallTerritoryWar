@@ -11,7 +11,7 @@
 
 // 四角基地中心（color_index: 0 左上红 / 1 右上绿 / 2 左下蓝 / 3 右下黄）
 void GetColorBlockCenter(int color_index, float &x, float &y);
-// 机械区的固定灰色阻挡圆点：乘法带以上 3 排 + 乘法带以下 6 排，均为交错排列，
+// 机械区的固定灰色阻挡圆点：乘法带以上 3 排 + 乘法带以下 4 排，均为交错排列，
 // 半径 = 物理球半径的一半
 void GetBlockingCircles(std::vector<StaticCircle> &circles);
 

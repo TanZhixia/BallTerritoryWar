@@ -89,7 +89,7 @@ struct PhysicsRect
     float multiplier;  // 0 = 普通反弹；>0 = 武器区倍数
 };
 
-// 静态阻挡圆（机械区的灰色圆点阵：乘法带以上 3 排 + 以下 6 排，交错排列）
+// 静态阻挡圆（机械区的灰色圆点阵：乘法带以上 3 排 + 以下 4 排，交错排列）
 struct StaticCircle
 {
     float x, y;
