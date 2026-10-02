@@ -774,10 +774,13 @@ void Tui::HandleOutputEditKey(const term::Key &key)
             SetMessage("输出文件名不能为空", true);
             return;
         }
-        options_.output = edit_buffer_;
+        const std::string normalized = NormalizeOutputName(edit_buffer_);
+        const bool added_extension = (normalized != edit_buffer_);
+        options_.output = normalized;
         editing_output_ = false;
         SaveOptionsQuietly();
-        SetMessage("输出文件名已设为 " + options_.output);
+        SetMessage("输出文件名已设为 " + options_.output +
+                   (added_extension ? "（自动补上 .mp4：ffmpeg 需要扩展名判断封装格式）" : ""));
         return;
     }
     if (key.type == term::Key::Type::Backspace) {

@@ -261,6 +261,7 @@ int main(int argc, char *argv[])
     if (output_name.empty()) {
         output_name = "output.mp4";
     }
+    output_name = NormalizeOutputPath(output_name);  // 缺扩展名时补 .mp4（否则 ffmpeg 无法确定封装格式）
     FILE *recorder = record_video
         ? StartRecorder(output_width, output_height, music_enabled, output_name.c_str())
         : nullptr;

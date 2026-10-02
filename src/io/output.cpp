@@ -13,6 +13,26 @@
 
 std::string g_music_playlist_path;  // 音乐播放列表路径（退出时清理）
 
+std::string NormalizeOutputPath(const std::string &path)
+{
+    if (path.empty()) {
+        return "output.mp4";
+    }
+    static const char *const kKnown[] = {".mp4", ".m4v",  ".mkv", ".mov",
+                                         ".avi", ".webm", ".ts",  ".flv"};
+    std::string lower = path;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    for (const char *ext : kKnown) {
+        const std::size_t len = std::strlen(ext);
+        if (lower.size() > len && lower.compare(lower.size() - len, len, ext) == 0) {
+            return path;  // 已有可识别扩展名
+        }
+    }
+    return path + ".mp4";  // 例如 “S2第二集” / “S2.第二集” → 追加 .mp4
+}
+
 // 音乐目录：~/.ball/music（用户数据目录，不随构建产物被清理）
 static std::string GetMusicDir()
 {
@@ -105,9 +125,11 @@ static bool BuildMusicPlaylist(std::string &out_path)
 FILE *StartRecorder(int width, int height, bool with_music, const char *output_path)
 {
     char command[1024];
+    // 兜底：无论调用方传什么，都保证有可识别的容器扩展名（幂等）
+    const std::string normalized = NormalizeOutputPath(output_path ? output_path : "");
     // 输出路径进入 shell 命令：转义单引号防注入/空格截断
     std::string escaped;
-    for (const char *p = output_path; *p; ++p) {
+    for (const char *p = normalized.c_str(); *p; ++p) {
         if (*p == '\'') {
             escaped += "'\\''";
         } else {

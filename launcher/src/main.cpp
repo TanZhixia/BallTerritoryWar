@@ -46,7 +46,7 @@ void PrintUsage()
         "  btw-launcher telemetry [-s 秒] [--raw]  打印遥测帧（默认 3 秒）\n"
         "\n"
         "启动选项（可与上面任意子命令组合，也会被记住到 ~/.ball/launcher.conf）：\n"
-        "  --output <文件名>               录像输出文件名（默认 output.mp4）\n"
+        "  --output <文件名>               录像输出文件名（默认 output.mp4；缺扩展名会自动补 .mp4）\n"
         "  录制视频 / 背景音乐 / 限制 60fps / 武器升力 恒定开启，不再提供开关；\n"
         "  如需关闭请直接给游戏传 --no-record / --no-music / --unlimited / --no-weapon-lift。\n"
         "\n"
@@ -417,7 +417,8 @@ int main(int argc, char **argv)
             return std::string(argv[++i]);
         };
         if (arg == "--output" || arg == "-o") {
-            options.output = next_value("--output");
+            // 统一补扩展名：ffmpeg 靠扩展名判断封装格式，缺了会直接放弃录制
+            options.output = NormalizeOutputName(next_value("--output"));
         } else if (arg == "--ascii") {
             ascii = true;
         } else if (arg == "--truecolor") {

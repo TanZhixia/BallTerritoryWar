@@ -71,6 +71,9 @@ struct LaunchOptions
 
 LaunchOptions LoadLaunchOptions();
 bool SaveLaunchOptions(const LaunchOptions &options, std::string &error);
+// 规范化录像输出名：没有可识别扩展名（mp4/mkv/mov/...）时补上 .mp4，
+// 否则 ffmpeg 会因为无法判断封装格式而放弃录制
+std::string NormalizeOutputName(const std::string &name);
 // 组装传给 build/main 的参数（不含程序名）
 std::vector<std::string> BuildGameArgs(const LaunchOptions &options);
 std::string JoinArgs(const std::vector<std::string> &args);

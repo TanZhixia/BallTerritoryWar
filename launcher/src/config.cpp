@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -728,13 +729,33 @@ bool SaveLaunchOptions(const LaunchOptions &options, std::string &error)
     return true;
 }
 
+std::string NormalizeOutputName(const std::string &name)
+{
+    if (name.empty()) {
+        return "output.mp4";
+    }
+    static const char *const kKnown[] = {".mp4", ".m4v",  ".mkv", ".mov",
+                                         ".avi", ".webm", ".ts",  ".flv"};
+    std::string lower = name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    for (const char *ext : kKnown) {
+        const std::size_t len = std::strlen(ext);
+        if (lower.size() > len && lower.compare(lower.size() - len, len, ext) == 0) {
+            return name;
+        }
+    }
+    return name + ".mp4";  // 例如 “S2第二集” / “S2.第二集” → 追加 .mp4
+}
+
 std::vector<std::string> BuildGameArgs(const LaunchOptions &options)
 {
     // 不传 --no-record / --no-music / --unlimited / --no-weapon-lift：
     // 游戏默认即为 录制开 + 音乐开 + 限制 60fps + 武器升力开。
     std::vector<std::string> args;
     args.push_back("--output");
-    args.push_back(options.output.empty() ? "output.mp4" : options.output);
+    args.push_back(NormalizeOutputName(options.output));  // 入口统一补扩展名
     return args;
 }
 
