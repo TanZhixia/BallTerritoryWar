@@ -445,11 +445,15 @@ void Tui::DrawMain(int top, int bottom)
                 const bool alive = array_at("alive", team)
                                        ? array_at("alive", team)->BoolOr(true)
                                        : true;
+                // 复活中：基地已失守，但该队最大的物理球正飞向炮塔复活
+                const bool reviving =
+                    !alive && array_at("reviving", team) &&
+                    array_at("reviving", team)->BoolOr(false);
                 const double territory = array_at("territory", team)
                                              ? array_at("territory", team)->NumberOr(0.0)
                                              : 0.0;
                 screen_.Put(col_team, row, term::PadToWidth(kTeamNames[team], 6),
-                            alive ? styles_.team[team] : styles_.team_dim);
+                            (alive || reviving) ? styles_.team[team] : styles_.team_dim);
 
                 int filled = alive ? static_cast<int>(territory * bar_w + 0.5) : 0;
                 if (filled > bar_w) {
@@ -469,10 +473,14 @@ void Tui::DrawMain(int top, int bottom)
                 char pct[32];
                 if (alive) {
                     std::snprintf(pct, sizeof(pct), "%.1f%%", territory * 100.0);
+                } else if (reviving) {
+                    std::snprintf(pct, sizeof(pct), "复活中");
                 } else {
                     std::snprintf(pct, sizeof(pct), "已灭");
                 }
-                screen_.Put(col_pct, row, pct, alive ? styles_.text : styles_.error);
+                screen_.Put(col_pct, row, pct,
+                            alive ? styles_.text
+                                  : (reviving ? styles_.team[team] : styles_.error));
 
                 const std::string big =
                     array_at("bigBalls", team)

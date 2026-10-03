@@ -98,9 +98,16 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
     // 领土新增闪光：翻色像素被点亮，逐帧衰减淡出（仅显示层）
     UpdateAndDrawTerritoryFlash(display_canvas, state.territory_flash);
 
-    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药）
+    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药 + 复活中提示）
+    bool hud_reviving[4] = {false, false, false, false};
+    for (const PhysicsBall &pb : state.physics_balls) {
+        if (pb.reviving) {
+            hud_reviving[FindPhysicsColorIndex(pb, PURE_COLORS)] = true;
+        }
+    }
     DrawHUD(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.hud_territory,
-            state.shield_remaining, state.machine_gun_ammo, state.color_alive);
+            state.shield_remaining, state.machine_gun_ammo, state.color_alive,
+            hud_reviving);
 
     // 大球显示 value（黑字）
     const SDL_FColor big_text_color = SDL_FColor{0.0f, 0.0f, 0.0f, 1.0f};

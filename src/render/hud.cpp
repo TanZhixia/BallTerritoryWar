@@ -26,7 +26,8 @@ constexpr int BLOCK_W = (PANEL_W - 2 * GAP_X - 3 * 6) / 4;  // 4 队
 
 void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
              const float territory[4], const float shield_remaining[4],
-             const float machine_gun_ammo[4], const bool color_alive[4])
+             const float machine_gun_ammo[4], const bool color_alive[4],
+             const bool color_reviving[4])
 {
     // 面板底 + 细边框
     const SDL_FColor panel_bg = {0.04f, 0.055f, 0.11f, 1.0f};
@@ -51,20 +52,23 @@ void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
             color == 2 ? NEW_FRAME_PALETTE.bottom_left :
                          NEW_FRAME_PALETTE.bottom_right);
         const bool alive = color_alive[color];
+        const bool reviving = !alive && color_reviving[color];  // 复活飞行中
 
-        // 色点
+        // 色点：存活用队伍色，复活中用队伍色（闪烁感由领土变化带来），已灭用灰色
         PaintCircle(canvas, canvas_width, canvas_height, x + 4, PANEL_Y + 8, 3.5f,
-                    alive ? team : gray);
+                    alive || reviving ? team : gray);
 
-        // 第一行（2 倍字）：领土百分比
+        // 第一行（2 倍字）：领土百分比 / REVIVING / --
         char line1[16];
         if (alive) {
             std::snprintf(line1, sizeof(line1), "%.1f", territory[color] * 100.0f);
+        } else if (reviving) {
+            std::snprintf(line1, sizeof(line1), "REVIVING");
         } else {
             std::snprintf(line1, sizeof(line1), "--");
         }
         DrawText(canvas, canvas_width, canvas_height,
-                 x + 12, PANEL_Y + 2, line1, alive ? white : dim, 2);
+                 x + 12, PANEL_Y + 2, line1, (alive || reviving) ? white : dim, 2);
 
         // 第二行（2 倍字）：护盾
         char line2[24];

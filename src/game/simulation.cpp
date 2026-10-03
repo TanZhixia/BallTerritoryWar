@@ -513,9 +513,13 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
     // 每 30 帧（0.5s）采样领土（HUD 与遥测共用一次），采集遥测推送给已连接的启动器
     if (state.frame_count % 30 == 0) {
         SampleTerritory(canvas, PURE_COLORS, state.hud_territory);
+        bool color_reviving[4] = {false, false, false, false};
+        for (int color = 0; color < 4; ++color) {
+            color_reviving[color] = IsRevivalPending(state, color);
+        }
         CollectTelemetry(state.balls, state.physics_balls, state.hud_territory, PURE_COLORS,
                          state.shield_remaining, state.machine_gun_ammo, state.color_alive,
-                         elapsed_minutes, telemetry);
+                         color_reviving, elapsed_minutes, telemetry);
     }
     return true;
 }
