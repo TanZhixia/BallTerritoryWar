@@ -105,6 +105,11 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
     };
 
     for (PhysicsBall &ball : balls) {
+        // 复活飞行中的球：不参与重力/升力/挡板/武器格/越界兜底，由
+        // UpdateRevivingBall 单独推进（它会飞出自己的机械区，去战场炮塔）
+        if (ball.reviving) {
+            continue;
+        }
         ball.vy += g_config.physics.gravity * dt;
         // 中间空隙区域的升力：宽度为缺口，高度 200px，只对 value 低于当前阈值的球生效
         if (ball.x >= 225.0f && ball.x <= 375.0f &&
@@ -600,22 +605,78 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
 
 }
 
+// 复活飞行推进：先原地停顿 stopSeconds（速度清零），再以固定速度飞向炮塔。
+// 返回 true 表示本帧已到达目标（调用方执行复活流程，并把该球移除）。
+bool UpdateRevivingBall(PhysicsBall &ball, float dt)
+{
+    if (!ball.reviving) {
+        return false;
+    }
+    if (ball.revive_stop > 0.0f) {
+        ball.revive_stop -= dt;
+        ball.vx = 0.0f;  // 动画第一阶段：原地停住不动
+        ball.vy = 0.0f;
+        if (ball.revive_stop > 0.0f) {
+            return false;
+        }
+    }
+    const float dx = ball.target_x - ball.x;
+    const float dy = ball.target_y - ball.y;
+    const float distance = std::sqrt(dx * dx + dy * dy);
+    const float speed = g_config.revive.flightSpeed;
+    const float step = speed * dt;
+    if (distance <= step || distance < 0.001f) {
+        ball.x = ball.target_x;
+        ball.y = ball.target_y;
+        ball.vx = 0.0f;
+        ball.vy = 0.0f;
+        return true;  // 到达炮塔
+    }
+    ball.vx = dx / distance * speed;
+    ball.vy = dy / distance * speed;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+    return false;
+}
+
+namespace {
+void DrawOnePhysicsBall(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                        const PhysicsBall &ball, const SDL_FColor &text_color)
+{
+    PaintCircle(canvas, canvas_width, canvas_height, ball.x, ball.y, ball.radius, ball.color);
+    const std::string value_text = FormatValue(ball.value);
+    constexpr int TEXT_SCALE = 2;
+    const int text_width = static_cast<int>(value_text.size()) * 6 * TEXT_SCALE;
+    DrawText(canvas, canvas_width, canvas_height,
+             static_cast<int>(ball.x) - text_width / 2,
+             static_cast<int>(ball.y) - (7 * TEXT_SCALE) / 2,
+             value_text.c_str(), text_color, TEXT_SCALE);
+}
+}  // namespace
+
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                              const std::vector<PhysicsBall> &balls,
                              const SDL_FColor *pure_colors)
 {
+    (void)pure_colors;
     const SDL_FColor text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};
     for (const PhysicsBall &ball : balls) {
-        PaintCircle(canvas, canvas_width, canvas_height,
-                    ball.x, ball.y, ball.radius, ball.color);
+        if (ball.reviving) {
+            continue;  // 复活飞行的球画在最上层（见 DrawRevivingPhysicsBalls）
+        }
+        DrawOnePhysicsBall(canvas, canvas_width, canvas_height, ball, text_color);
+    }
+}
 
-        const std::string value_text = FormatValue(ball.value);
-        constexpr int TEXT_SCALE = 2;
-        const int text_width = static_cast<int>(value_text.size()) * 6 * TEXT_SCALE;
-        DrawText(canvas, canvas_width, canvas_height,
-                 static_cast<int>(ball.x) - text_width / 2,
-                 static_cast<int>(ball.y) - (7 * TEXT_SCALE) / 2,
-                 value_text.c_str(), text_color, TEXT_SCALE);
+void DrawRevivingPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                              const std::vector<PhysicsBall> &balls)
+{
+    const SDL_FColor text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};
+    for (const PhysicsBall &ball : balls) {
+        if (!ball.reviving) {
+            continue;
+        }
+        DrawOnePhysicsBall(canvas, canvas_width, canvas_height, ball, text_color);
     }
 }
 

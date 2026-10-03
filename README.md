@@ -179,17 +179,28 @@ SHIELD(240-360) / BIGBALL(360-480) / SNIPER(480-600)。触发后球的 value 归
 狙击按自身 value 吸引半径内一切实体；**进入狙击引力场的小球每秒 +1 value**
 （`sniper.gravityValueGain`，0 = 关闭；大球与狙击自身不计，与引力开关相互独立）。
 
+**复活**（`revive` 组）：基地沦陷后，若该颜色还剩 **≥ `revive.minPhysicsBalls`(2) 个物理球**，
+则**保留物理球不转化**，其中 **value 最大的那个原地停住 `stopSeconds`(0.5s)**，
+然后以 `flightSpeed`(400px/s) **飞向自己的炮塔**（画在所有 UI 之上），到达后：
+
+1. 颜色重新存活（`color_alive = true`）；
+2. 该物理球**价值 × `shieldValueScale`(1.0) 变为护盾**，物理球本身消耗掉；
+3. **护盾圈内所有像素刷回该队纯色**（领土恢复，带闪光反馈）。
+
+只剩 1 个物理球（或 `minPhysicsBalls = 0` 关闭）时不复活，维持原逻辑：物理球全部
+转化为大球从基地发射。复活飞行中的颜色**不算被消灭**，因此结束倒计时不会在复活途中触发。
+
 **胜负**：基地 = 四角**半径 100 的纯色圆**（圆心距两条边各 100px，即原来的护盾圈大小；
 盾牌圈默认半径 80，落在圆内），中心 20×20 区域出现任何非本队色像素即沦陷
-（弹药清零、该队物理球转为大球）。存活 ≤1 队且场上无该队敌人（亡队大球）时开始 3600 帧
-倒计时后结束。
+（弹药清零；有足够物理球时走上面的复活流程，否则物理球转为大球）。
+存活 ≤1 队且场上无该队敌人（亡队大球）时开始 3600 帧倒计时后结束。
 
 ---
 
 ## 配置（~/.ball/config.yaml）
 
-首次运行自动生成带注释的默认配置，11 组 56 键（paintBalls / physics / lift / machineGun /
-shotgun / sniper / bigBall / shield / combat / gameOver / startup）。解析器是手写 YAML 子集：
+首次运行自动生成带注释的默认配置，12 组 60 键（paintBalls / physics / lift / machineGun /
+shotgun / sniper / bigBall / shield / combat / gameOver / startup / revive）。解析器是手写 YAML 子集：
 支持 `key: value`、缩进嵌套、`- ` 列表、`#` 注释；不支持 Tab 缩进、锚点、流式集合。
 出错或字段缺失时该项回退内置默认值并打印日志，删除文件即可恢复默认。
 

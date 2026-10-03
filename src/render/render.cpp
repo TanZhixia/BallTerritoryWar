@@ -182,4 +182,8 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
                  static_cast<int>(center_y) - 8,
                  ammo_text, ammo_text_color, 2);
     }
+
+    // 复活飞行中的物理球画在所有 UI 之上：它要横穿战场飞到炮塔，动画必须醒目
+    DrawRevivingPhysicsBalls(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                             state.physics_balls);
 }

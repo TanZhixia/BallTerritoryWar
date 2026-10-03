@@ -433,6 +433,12 @@ gameOver:
 
 startup:
   openingShotgunValue: 2500000.0  # 开局每队向中心发射的霰弹总价值
+
+revive:
+  minPhysicsBalls: 2       # 至少这么多物理球才触发复活（只剩 1 个不复活；0 = 关闭复活）
+  stopSeconds: 0.5         # 最大的物理球停止移动的停顿时间（秒）
+  flightSpeed: 400.0       # 飞向炮塔的速度（像素/秒）
+  shieldValueScale: 1.0    # 物理球价值 → 护盾值的倍率
 )";
 }
 
@@ -601,6 +607,14 @@ bool LoadConfig()
     } else {
         warnings += "gameOver 组缺失；";
     }
+    if (const YamlNode *g = YamlFind(root, "revive")) {
+        YamlInt(*g, "minPhysicsBalls", g_config.revive.minPhysicsBalls, warnings);
+        YamlNum(*g, "stopSeconds", g_config.revive.stopSeconds, warnings);
+        YamlNum(*g, "flightSpeed", g_config.revive.flightSpeed, warnings);
+        YamlNum(*g, "shieldValueScale", g_config.revive.shieldValueScale, warnings);
+    } else {
+        warnings += "revive 组缺失；";
+    }
     if (const YamlNode *g = YamlFind(root, "startup")) {
         YamlNum(*g, "openingShotgunValue", g_config.startup.openingShotgunValue, warnings);
     } else {
@@ -750,6 +764,11 @@ bool ApplyConfigKey(const std::string &key, const std::vector<std::string> &valu
     else if (key == "combat.damageRatio") { if (get_num(0, f)) g_config.combat.damageRatio = f; else return false; }
     // gameOver
     else if (key == "gameOver.countdownFrames") { if (get_int(0, i)) g_config.gameOver.countdownFrames = i; else return false; }
+    // revive
+    else if (key == "revive.minPhysicsBalls") { if (get_int(0, i)) g_config.revive.minPhysicsBalls = i; else return false; }
+    else if (key == "revive.stopSeconds") { if (get_num(0, f)) g_config.revive.stopSeconds = f; else return false; }
+    else if (key == "revive.flightSpeed") { if (get_num(0, f)) g_config.revive.flightSpeed = f; else return false; }
+    else if (key == "revive.shieldValueScale") { if (get_num(0, f)) g_config.revive.shieldValueScale = f; else return false; }
     // startup
     else if (key == "startup.openingShotgunValue") { if (get_num(0, f)) g_config.startup.openingShotgunValue = f; else return false; }
     else {

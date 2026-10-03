@@ -80,6 +80,12 @@ struct PhysicsBall
     float radius;
     float value;
     SDL_FColor color;
+
+    // ---- 复活飞行（基地被占领后，该队价值最大的物理球飞去炮塔复活颜色）----
+    bool reviving = false;      // 正在执行复活飞行（跳过常规物理模拟）
+    float revive_stop = 0.0f;   // "停止移动"的剩余停顿时间（秒）
+    float target_x = 0.0f;      // 目标：该颜色炮塔（基地中心）
+    float target_y = 0.0f;
 };
 
 // 机械区碰撞矩形（倍率带 / 武器格 / 挡板）

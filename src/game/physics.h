@@ -41,10 +41,18 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                         bool high_value_lift_enabled,
                         std::vector<Shockwave> &waves);
 
-// 在显示画布上画物理球（圆 + 价值文字）
+// 推进"复活飞行"：先原地停顿 stopSeconds，再以 revive.flightSpeed 飞向炮塔；
+// 返回 true 表示本帧到达炮塔（调用方据此执行复活流程）
+bool UpdateRevivingBall(PhysicsBall &ball, float dt);
+
+// 在显示画布上画物理球（圆 + 价值文字）；复活飞行中的球跳过（由
+// DrawRevivingPhysicsBalls 画在最上层，飞行过程更醒目）
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                       const std::vector<PhysicsBall> &balls,
                       const SDL_FColor *pure_colors);
+// 只画"复活飞行中"的物理球（画在显示层最上方）
+void DrawRevivingPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                              const std::vector<PhysicsBall> &balls);
 // 战场实体的碰撞与伤害结算（护盾吸收 / 大球-大球 / 大球-小球 / 小-小空间网格）
 void ResolvePaintBallCollisions(std::vector<BallObject> &balls,
                                 float shield_remaining[4],

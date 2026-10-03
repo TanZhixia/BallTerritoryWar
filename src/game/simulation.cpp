@@ -84,6 +84,16 @@ void InitializeGame(GameState &state)
     state.game_start_time = SDL_GetTicks();
 }
 
+bool IsRevivalPending(const GameState &state, int color)
+{
+    for (const PhysicsBall &ball : state.physics_balls) {
+        if (ball.reviving && FindPhysicsColorIndex(ball, PURE_COLORS) == color) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // 一帧模拟：涂画/移动、引力、碰撞、基地占领、胜负判定、物理区、遥测。
 // 返回 false 表示本局结束（调用方应退出主循环）。
 bool StepGame(GameState &state, std::vector<Uint8> &canvas,
@@ -338,42 +348,105 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
             state.machine_gun_ammo[color] = 0.0f;  // 该颜色机枪也被删除
             state.color_alive[color] = false;
 
-            // 基地死亡：该颜色的物理球全部转化为普通大球，从基地发射出去
-            // （基地的死亡不会直接消灭它们，之后按正常大球规则战斗）
             float center_x = 0.0f, center_y = 0.0f;
             GetColorBlockCenter(color, center_x, center_y);
-            for (const PhysicsBall &pb : state.physics_balls) {
+
+            // 复活判定：数该颜色还剩几个物理球，并挑出价值最大的一个
+            std::size_t owned = 0;
+            PhysicsBall *biggest = nullptr;
+            for (PhysicsBall &pb : state.physics_balls) {
                 if (FindPhysicsColorIndex(pb, PURE_COLORS) != color) {
                     continue;
                 }
-                const float angle = RandFloat() * 2.0f * static_cast<float>(M_PI);
-                state.balls.emplace_back(
-                    center_x,
-                    center_y,
-                    g_config.paintBalls.speed * g_config.bigBall.speedFactor,
-                    angle,
-                    BigBallRadius(pb.value),
-                    PURE_COLORS[color],
-                    NEW_COLORS[color],
-                    pb.value,
-                    true,               // 大球
-                    false,              // 不是狙击
-                    g_next_big_ball_id++);
+                ++owned;
+                if (biggest == nullptr || pb.value > biggest->value) {
+                    biggest = &pb;
+                }
             }
-            // 原物理球移除（已转化为大球）
-            state.physics_balls.erase(
-                std::remove_if(
-                    state.physics_balls.begin(), state.physics_balls.end(),
-                    [color](const PhysicsBall &ball) {
-                        return FindPhysicsColorIndex(ball, PURE_COLORS) == color;
-                    }),
-                state.physics_balls.end());
+            const int required = g_config.revive.minPhysicsBalls;
+            if (required > 0 && biggest != nullptr &&
+                static_cast<int>(owned) >= required) {
+                // 物理球还够 → 保留它们不转化，让价值最大的那个飞去炮塔复活：
+                // 先原地停住（停止移动），停顿结束后由 UpdateRevivingBall 推进
+                biggest->reviving = true;
+                biggest->revive_stop = g_config.revive.stopSeconds;
+                biggest->target_x = center_x;
+                biggest->target_y = center_y;
+                biggest->vx = 0.0f;
+                biggest->vy = 0.0f;
+                SDL_Log("Revive: color %d base lost, physics ball (value=%.0f) heading to turret",
+                        color, biggest->value);
+            } else {
+                // 物理球不足（或复活关闭）：维持原逻辑——全部转化为大球从基地发射
+                for (const PhysicsBall &pb : state.physics_balls) {
+                    if (FindPhysicsColorIndex(pb, PURE_COLORS) != color) {
+                        continue;
+                    }
+                    const float angle = RandFloat() * 2.0f * static_cast<float>(M_PI);
+                    state.balls.emplace_back(
+                        center_x,
+                        center_y,
+                        g_config.paintBalls.speed * g_config.bigBall.speedFactor,
+                        angle,
+                        BigBallRadius(pb.value),
+                        PURE_COLORS[color],
+                        NEW_COLORS[color],
+                        pb.value,
+                        true,               // 大球
+                        false,              // 不是狙击
+                        g_next_big_ball_id++);
+                }
+                // 原物理球移除（已转化为大球）
+                state.physics_balls.erase(
+                    std::remove_if(
+                        state.physics_balls.begin(), state.physics_balls.end(),
+                        [color](const PhysicsBall &ball) {
+                            return FindPhysicsColorIndex(ball, PURE_COLORS) == color;
+                        }),
+                    state.physics_balls.end());
+            }
+        }
+    }
+
+    // 复活飞行：停止移动 → 飞向炮塔 → 到达后执行复活流程
+    {
+        std::vector<std::size_t> arrived;
+        for (std::size_t i = 0; i < state.physics_balls.size(); ++i) {
+            PhysicsBall &ball = state.physics_balls[i];
+            if (!ball.reviving) {
+                continue;
+            }
+            if (!UpdateRevivingBall(ball, 1.0f / 60.0f)) {
+                continue;  // 还在停顿/飞行中
+            }
+            const int color = FindPhysicsColorIndex(ball, PURE_COLORS);
+            if (color >= 0 && color < 4) {
+                float center_x = 0.0f, center_y = 0.0f;
+                GetColorBlockCenter(color, center_x, center_y);
+                state.color_alive[color] = true;  // 1) 颜色复活
+                // 2) 这个最大的物理球转换为护盾
+                state.shield_remaining[color] =
+                    ball.value * g_config.revive.shieldValueScale;
+                // 3) 护盾圈内的像素全部刷回该队颜色（领土恢复，带闪光反馈）
+                PaintCircleFlash(canvas, state.territory_flash, WINDOW_WIDTH, WINDOW_HEIGHT,
+                                 center_x, center_y, g_config.shield.radius,
+                                 PURE_COLORS[color]);
+                SDL_Log("Revive: color %d revived (shield=%.0f from ball value=%.0f)",
+                        color, state.shield_remaining[color], ball.value);
+            }
+            arrived.push_back(i);
+        }
+        // 已消耗的复活球移除（倒序删除，避免下标失效）
+        for (auto it = arrived.rbegin(); it != arrived.rend(); ++it) {
+            state.physics_balls.erase(state.physics_balls.begin() +
+                                      static_cast<std::ptrdiff_t>(*it));
         }
     }
 
     int alive_count = 0;
-    for (bool alive : state.color_alive) {
-        if (alive) {
+    for (int color = 0; color < 4; ++color) {
+        // 复活飞行中的颜色不算被消灭（否则倒计时会在复活途中结束本局）
+        if (state.color_alive[color] || IsRevivalPending(state, color)) {
             ++alive_count;
         }
     }
