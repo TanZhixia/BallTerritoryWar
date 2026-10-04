@@ -34,6 +34,7 @@ void CollectTelemetry(std::vector<BallObject> &balls,
                       const float machine_gun_ammo[4],
                       const bool color_alive[4],
                       const bool color_reviving[4],
+                      const float revive_in[4],
                       float elapsed_minutes,
                       TelemetryState &telemetry);
 

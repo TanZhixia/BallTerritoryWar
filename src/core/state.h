@@ -31,6 +31,9 @@ struct GameState
     float lift_threshold = 0.0f;
     float weapon_lift_thresholds[3] = {};
     bool color_alive[4] = {true, true, true, true};
+    // 复活等待倒计时（秒）：>0 表示该颜色基地已失守、正在等待复活；
+    // 等待期内它的物理球落入任何武器格都转化为护盾（revive.delaySeconds）
+    float revival_wait[4] = {};
 
     // 胜负与采样
     bool game_over_started = false;

@@ -129,6 +129,7 @@ std::vector<ConfigGroup> BuildSchema()
         }},
         {"revive", "复活", {
             IntItem("minPhysicsBalls", "最少物理球", "至少这么多物理球才触发复活（只剩 1 个不复活，0 = 关闭）", 0, 16, 1, 2),
+            FloatItem("delaySeconds", "复活等待", "死亡后等这么多秒才复活（等待期内武器格转护盾）", 0, 300, 5, 60.0),
             FloatItem("stopSeconds", "停止停顿", "最大的物理球停止移动的停顿时间（秒）", 0, 5, 0.1, 0.5),
             FloatItem("flightSpeed", "飞行速度", "飞向炮塔的速度（像素/秒）", 20, 3000, 20, 400.0),
             FloatItem("shieldValueScale", "护盾倍率", "物理球价值 → 护盾值的倍率", 0, 10, 0.1, 1.0),

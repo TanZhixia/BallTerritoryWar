@@ -76,7 +76,8 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                                const float weapon_lift_thresholds[3],
                                float shield_remaining[4],
                                bool high_value_lift_enabled,
-                               std::vector<Shockwave> &waves)
+                               std::vector<Shockwave> &waves,
+                               const float revival_wait[4])
 {
     const PhysicsRect bounce_rects[] = {
         {0.0f, 0.0f, 20.0f, 1000.0f, 0.0f},     // 左边框
@@ -177,6 +178,33 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         }
         if (reset) {
             continue;
+        }
+
+        // 复活等待期（基地已失守、等着复活）：该颜色的物理球落入任意武器格都不发射武器，
+        // 而是把价值转化为该队护盾（为复活后的护盾圈攒量），球本身重置回顶部继续跑
+        if (revival_wait != nullptr &&
+            revival_wait[FindPhysicsColorIndex(ball, pure_colors)] > 0.0f) {
+            bool in_any_slot = false;
+            for (int slot = 0; slot < 5 && !in_any_slot; ++slot) {
+                const PhysicsRect slot_rect = {
+                    static_cast<float>(slot) * 120.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+                float slot_nx = 0.0f, slot_ny = 0.0f, slot_pen = 0.0f;
+                in_any_slot = CircleRectCollision(ball, slot_rect, slot_nx, slot_ny, slot_pen);
+            }
+            if (in_any_slot) {
+                const int color_index = FindPhysicsColorIndex(ball, pure_colors);
+                SpawnShockwave(waves, ball.x, ball.y, 24.0f, 0.5f, 2.5f,
+                               SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f});
+                shield_remaining[color_index] +=
+                    ball.value * g_config.revive.shieldValueScale;
+                ball.value = 1.0f;  // 转化为护盾后恢复 1
+                ball.x = 300.0f;
+                ball.y = 100.0f;
+                const float angle = RandFloat() * 2.0f * static_cast<float>(M_PI);
+                ball.vx = std::cos(angle) * g_config.physics.launchSpeed;
+                ball.vy = std::sin(angle) * g_config.physics.launchSpeed;
+                continue;
+            }
         }
 
         // 底部武器格（与画布视觉一致，共 600px，5 格各 120px）：

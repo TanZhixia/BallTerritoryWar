@@ -445,10 +445,15 @@ void Tui::DrawMain(int top, int bottom)
                 const bool alive = array_at("alive", team)
                                        ? array_at("alive", team)->BoolOr(true)
                                        : true;
-                // 复活中：基地已失守，但该队最大的物理球正飞向炮塔复活
+                // 复活中：基地已失守，该队正在等待复活或物理球已飞向炮塔
                 const bool reviving =
                     !alive && array_at("reviving", team) &&
                     array_at("reviving", team)->BoolOr(false);
+                // 复活等待剩余秒数（>0 = 死亡等待期，武器格正在攒护盾；0 = 已起飞）
+                const double revive_in =
+                    reviving && array_at("reviveIn", team)
+                        ? array_at("reviveIn", team)->NumberOr(0.0)
+                        : 0.0;
                 const double territory = array_at("territory", team)
                                              ? array_at("territory", team)->NumberOr(0.0)
                                              : 0.0;
@@ -473,8 +478,10 @@ void Tui::DrawMain(int top, int bottom)
                 char pct[32];
                 if (alive) {
                     std::snprintf(pct, sizeof(pct), "%.1f%%", territory * 100.0);
+                } else if (reviving && revive_in > 0.5) {
+                    std::snprintf(pct, sizeof(pct), "复活 %.0fs", revive_in);  // 等待期倒计时
                 } else if (reviving) {
-                    std::snprintf(pct, sizeof(pct), "复活中");
+                    std::snprintf(pct, sizeof(pct), "复活中");  // 已起飞，飞向炮塔
                 } else {
                     std::snprintf(pct, sizeof(pct), "已灭");
                 }
@@ -488,11 +495,11 @@ void Tui::DrawMain(int top, int bottom)
                               array_at("bigBalls", team)->NumberOr(0.0)))
                         : "-";
                 const std::string shield =
-                    alive && array_at("shields", team)
+                    (alive || reviving) && array_at("shields", team)
                         ? FormatNum(array_at("shields", team)->NumberOr(0.0))
                         : "-";
                 const std::string ammo =
-                    alive && array_at("ammo", team)
+                    (alive || reviving) && array_at("ammo", team)
                         ? FormatNum(array_at("ammo", team)->NumberOr(0.0))
                         : "-";
                 const std::string phys =

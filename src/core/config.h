@@ -118,6 +118,7 @@ struct StartupConfig
 struct ReviveConfig
 {
     int minPhysicsBalls = 2;        // 至少要有这么多物理球才触发复活（只剩 1 个不复活）
+    float delaySeconds = 60.0f;     // 死亡后等多少秒才复活（等待期内武器格转护盾；0 = 立即复活）
     float stopSeconds = 0.5f;       // 最大物理球"停止移动"的停顿时间（秒）
     float flightSpeed = 400.0f;     // 飞向炮塔的速度（像素/秒）
     float shieldValueScale = 1.0f;  // 物理球价值 → 护盾值的倍率

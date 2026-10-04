@@ -86,13 +86,46 @@ void InitializeGame(GameState &state)
 
 bool IsRevivalPending(const GameState &state, int color)
 {
+    if (color >= 0 && color < 4 && state.revival_wait[color] > 0.0f) {
+        return true;  // 死亡等待期（还没起飞）
+    }
     for (const PhysicsBall &ball : state.physics_balls) {
         if (ball.reviving && FindPhysicsColorIndex(ball, PURE_COLORS) == color) {
-            return true;
+            return true;  // 正在飞向炮塔
         }
     }
     return false;
 }
+
+namespace {
+// 让该颜色价值最大的物理球进入复活飞行（原地停顿 → 飞向炮塔）
+bool StartReviveFlight(GameState &state, int color)
+{
+    PhysicsBall *biggest = nullptr;
+    for (PhysicsBall &ball : state.physics_balls) {
+        if (FindPhysicsColorIndex(ball, PURE_COLORS) != color) {
+            continue;
+        }
+        if (biggest == nullptr || ball.value > biggest->value) {
+            biggest = &ball;
+        }
+    }
+    if (biggest == nullptr) {
+        return false;
+    }
+    float center_x = 0.0f, center_y = 0.0f;
+    GetColorBlockCenter(color, center_x, center_y);
+    biggest->reviving = true;
+    biggest->revive_stop = g_config.revive.stopSeconds;
+    biggest->target_x = center_x;
+    biggest->target_y = center_y;
+    biggest->vx = 0.0f;
+    biggest->vy = 0.0f;
+    SDL_Log("Revive: color %d physics ball (value=%.0f) heading to turret", color,
+            biggest->value);
+    return true;
+}
+}  // namespace
 
 // 一帧模拟：涂画/移动、引力、碰撞、基地占领、胜负判定、物理区、遥测。
 // 返回 false 表示本局结束（调用方应退出主循环）。
@@ -366,16 +399,17 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
             const int required = g_config.revive.minPhysicsBalls;
             if (required > 0 && biggest != nullptr &&
                 static_cast<int>(owned) >= required) {
-                // 物理球还够 → 保留它们不转化，让价值最大的那个飞去炮塔复活：
-                // 先原地停住（停止移动），停顿结束后由 UpdateRevivingBall 推进
-                biggest->reviving = true;
-                biggest->revive_stop = g_config.revive.stopSeconds;
-                biggest->target_x = center_x;
-                biggest->target_y = center_y;
-                biggest->vx = 0.0f;
-                biggest->vy = 0.0f;
-                SDL_Log("Revive: color %d base lost, physics ball (value=%.0f) heading to turret",
-                        color, biggest->value);
+                // 物理球还够 → 保留它们不转化（颜色不会就此消失，因为要复活）
+                const float delay = g_config.revive.delaySeconds;
+                if (delay > 0.0f) {
+                    // 先等 delaySeconds 秒：这段时间内该队物理球落入任何武器格都转化为护盾
+                    state.revival_wait[color] = delay;
+                    SDL_Log("Revive: color %d base lost, waiting %.0fs (weapon slots will charge shield)",
+                            color, static_cast<double>(delay));
+                } else {
+                    // 不等待：立刻由价值最大的物理球起飞
+                    StartReviveFlight(state, color);
+                }
             } else {
                 // 物理球不足（或复活关闭）：维持原逻辑——全部转化为大球从基地发射
                 for (const PhysicsBall &pb : state.physics_balls) {
@@ -408,6 +442,21 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
         }
     }
 
+    // 复活等待倒计时：结束后由价值最大的物理球起飞（复制上面占领分支的判定语义）
+    for (int color = 0; color < 4; ++color) {
+        if (state.revival_wait[color] <= 0.0f) {
+            continue;
+        }
+        state.revival_wait[color] -= 1.0f / 60.0f;
+        if (state.revival_wait[color] > 0.0f) {
+            continue;
+        }
+        state.revival_wait[color] = 0.0f;
+        if (!StartReviveFlight(state, color)) {
+            SDL_Log("Revive: color %d has no physics ball left, stays dead", color);
+        }
+    }
+
     // 复活飞行：停止移动 → 飞向炮塔 → 到达后执行复活流程
     {
         std::vector<std::size_t> arrived;
@@ -424,14 +473,15 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
                 float center_x = 0.0f, center_y = 0.0f;
                 GetColorBlockCenter(color, center_x, center_y);
                 state.color_alive[color] = true;  // 1) 颜色复活
-                // 2) 这个最大的物理球转换为护盾
-                state.shield_remaining[color] =
+                // 2) 这个最大的物理球转换为护盾（累加到等待期已攒的护盾上，
+                //    等待期内武器格转化的护盾不能被覆盖丢失）
+                state.shield_remaining[color] +=
                     ball.value * g_config.revive.shieldValueScale;
                 // 3) 护盾圈内的像素全部刷回该队颜色（领土恢复，带闪光反馈）
                 PaintCircleFlash(canvas, state.territory_flash, WINDOW_WIDTH, WINDOW_HEIGHT,
                                  center_x, center_y, g_config.shield.radius,
                                  PURE_COLORS[color]);
-                SDL_Log("Revive: color %d revived (shield=%.0f from ball value=%.0f)",
+                SDL_Log("Revive: color %d revived (shield=%.0f, +%.0f from flying ball)",
                         color, state.shield_remaining[color], ball.value);
             }
             arrived.push_back(i);
@@ -498,7 +548,7 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
                       PURE_COLORS, NEW_COLORS,
                       state.machine_gun_ammo, state.machine_gun_angle, state.blocking_circles,
                       state.lift_threshold, state.weapon_lift_thresholds, state.shield_remaining,
-                      elapsed_minutes < 10.0f, state.shockwaves);
+                      elapsed_minutes < 10.0f, state.shockwaves, state.revival_wait);
 
     // 物理球气泡拖尾：value 达到中间升力阈值（state.lift_threshold）的球冒气泡（仅显示层）
     for (const PhysicsBall &pb : state.physics_balls) {
@@ -519,7 +569,7 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
         }
         CollectTelemetry(state.balls, state.physics_balls, state.hud_territory, PURE_COLORS,
                          state.shield_remaining, state.machine_gun_ammo, state.color_alive,
-                         color_reviving, elapsed_minutes, telemetry);
+                         color_reviving, state.revival_wait, elapsed_minutes, telemetry);
     }
     return true;
 }

@@ -28,6 +28,8 @@ extern int g_next_big_ball_id;
 extern bool g_weapon_lift_enabled;  // *8/*4/*2 及霰弹/狙击列升力开关（--no-weapon-lift 关闭，中间升力保留）
 
 // 推进左侧机械区一帧：升力/重力/挡板/倍率带/五种武器格/机枪发射
+// revival_wait：各颜色复活等待倒计时（秒）。>0 的颜色处于"死亡等待复活"状态，
+// 其物理球落入任意武器格都不发射武器，而是把价值转化为该队护盾（可传 nullptr）
 void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                         std::vector<BallObject> &paint_balls,
                         const SDL_FColor *pure_colors,
@@ -39,7 +41,8 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                         const float weapon_lift_thresholds[3],
                         float shield_remaining[4],
                         bool high_value_lift_enabled,
-                        std::vector<Shockwave> &waves);
+                        std::vector<Shockwave> &waves,
+                        const float revival_wait[4] = nullptr);
 
 // 推进"复活飞行"：先原地停顿 stopSeconds，再以 revive.flightSpeed 飞向炮塔；
 // 返回 true 表示本帧到达炮塔（调用方据此执行复活流程）
