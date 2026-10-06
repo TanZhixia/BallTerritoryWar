@@ -221,6 +221,9 @@ static const char *FONT_T[7] = {
 static const char *FONT_U[7] = {
     "10001", "10001", "10001", "10001", "10001", "10001", "01110",
 };
+static const char *FONT_V[7] = {
+    "10001", "10001", "10001", "10001", "10001", "01010", "00100",
+};
 static const char *FONT_W[7] = {
     "10001", "10001", "10001", "10101", "10101", "11011", "10001",
 };
@@ -251,6 +254,9 @@ static const char *FONT_K[7] = {
 static const char *FONT_DOT[7] = {
     "00000", "00000", "00000", "00000", "00000", "00110", "00110",
 };
+static const char *FONT_DASH[7] = {
+    "00000", "00000", "00000", "11111", "00000", "00000", "00000",
+};
 
 // 字符 → 点阵图案（5×7）
 static const char **GetFontPattern(char c)
@@ -269,6 +275,7 @@ static const char **GetFontPattern(char c)
         case 'x': return FONT_X;
         case '|': return FONT_PIPE;
         case '.': return FONT_DOT;
+        case '-': return FONT_DASH;
         case 'A': return FONT_A;
         case 'B': return FONT_B;
         case 'C': return FONT_C;
@@ -287,6 +294,7 @@ static const char **GetFontPattern(char c)
         case 'S': return FONT_S;
         case 'T': return FONT_T;
         case 'U': return FONT_U;
+        case 'V': return FONT_V;
         case 'W': return FONT_W;
         case 'k': return FONT_K;
         default: return nullptr;
