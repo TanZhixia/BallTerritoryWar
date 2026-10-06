@@ -188,11 +188,18 @@ void CollectTelemetry(std::vector<BallObject> &balls,
         return;  // 无客户端时不采样
     }
 
-    static Uint64 last_ticks = SDL_GetTicks();
+    // 采样间隔固定 30 帧（0.5s），据此反推 FPS。
+    // 首次调用没有"上一次"时间点，直接给 0：原来用 SDL_GetTicks() 就地初始化 static，
+    // 分母被 max(1, 0) 夹成 1ms，第一帧遥测恒显示 30000 FPS。
+    static Uint64 last_ticks = 0;
+    static bool has_last_ticks = false;
     const Uint64 now = SDL_GetTicks();
-    const float fps = 30.0f * 1000.0f /
-        static_cast<float>(std::max<Uint64>(1, now - last_ticks));
+    float fps = 0.0f;
+    if (has_last_ticks && now > last_ticks) {
+        fps = 30.0f * 1000.0f / static_cast<float>(now - last_ticks);
+    }
     last_ticks = now;
+    has_last_ticks = true;
 
     int big_balls[4] = {};
     for (const BallObject &ball : balls) {
