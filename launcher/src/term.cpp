@@ -5,7 +5,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -16,13 +15,7 @@ namespace {
 
 termios g_original;
 bool g_raw = false;
-volatile sig_atomic_t g_resized = 0;
 bool g_ascii = false;
-
-void OnWinch(int)
-{
-    g_resized = 1;
-}
 
 std::string BasicColor(int idx, int base)
 {
@@ -40,7 +33,6 @@ std::string BasicColor(int idx, int base)
 }
 
 std::string BasicFg(int idx) { return BasicColor(idx, 30); }
-std::string BasicBg(int idx) { return BasicColor(idx, 40); }
 
 // 解码一个 UTF-8 码点，i 前进到下一个字符；非法字节按 U+FFFD 处理
 unsigned int NextCodePoint(const std::string &s, std::size_t &i)
@@ -153,23 +145,6 @@ void LeaveRawMode()
         ::tcsetattr(STDIN_FILENO, TCSANOW, &g_original);
         g_raw = false;
     }
-}
-
-void InstallResizeHandler()
-{
-    struct sigaction sa;
-    std::memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = OnWinch;
-    sigaction(SIGWINCH, &sa, nullptr);
-}
-
-bool Resized()
-{
-    if (g_resized) {
-        g_resized = 0;
-        return true;
-    }
-    return false;
 }
 
 int Width()
@@ -411,19 +386,9 @@ namespace ansi {
 
 std::string Reset() { return "\x1b[0m"; }
 std::string Bold() { return "\x1b[1m"; }
-std::string Dim() { return "\x1b[2m"; }
-std::string Underline() { return "\x1b[4m"; }
 std::string Reverse() { return "\x1b[7m"; }
 
 std::string Fg(int color_index) { return BasicFg(color_index); }
-std::string Bg(int color_index) { return BasicBg(color_index); }
-
-std::string Fg256(int color_index)
-{
-    char buf[24];
-    std::snprintf(buf, sizeof(buf), "\x1b[38;5;%dm", color_index);
-    return std::string(buf);
-}
 
 std::string FgRgb(int r, int g, int b)
 {

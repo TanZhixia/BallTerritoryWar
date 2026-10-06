@@ -27,9 +27,7 @@ bool IsTty();
 // 进入 raw 模式（关闭行缓冲/回显）；非 tty 或失败返回 false
 bool EnterRawMode();
 void LeaveRawMode();
-// 注册 SIGWINCH 处理，Resized() 消费一次窗口变化标记
-void InstallResizeHandler();
-bool Resized();
+// 注：不需要 SIGWINCH 处理——TUI 每帧重新读取 Width()/Height()，缩放自然生效
 
 int Width();
 int Height();
@@ -50,12 +48,8 @@ void PopLastUtf8Char(std::string &text);
 namespace ansi {
 std::string Reset();
 std::string Bold();
-std::string Dim();
-std::string Underline();
 std::string Reverse();
 std::string Fg(int color_index);  // 基本 8/16 色（0-15）
-std::string Bg(int color_index);
-std::string Fg256(int color_index);
 std::string FgRgb(int r, int g, int b);
 std::string BgRgb(int r, int g, int b);
 std::string AltScreen(bool on);

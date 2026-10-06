@@ -1,6 +1,6 @@
 # Ball Territory War · CLI 启动器
 
-终端界面（TUI）启动器：查看环境状态、实时订阅战况、启动/构建游戏、图形化编辑全部 56 个
+终端界面（TUI）启动器：查看环境状态、实时订阅战况、启动/构建游戏、图形化编辑全部 61 个
 平衡参数。录制视频 / 背景音乐 / 限制 60fps / 武器升力**恒定开启**，不提供开关。
 纯 C++17 + POSIX，无第三方依赖，与游戏同一个 CMake 构建。
 
@@ -18,7 +18,7 @@ launcher/
     ├── main.cpp        # 入口：子命令解析 + 配色探测 + TUI 启动
     ├── term.{h,cpp}    # 终端层：raw 模式、按键解码（含 UTF-8）、单元格屏幕缓冲、ANSI
     ├── json.{h,cpp}    # 极简 JSON 解析（解析遥测帧）
-    ├── config.{h,cpp}  # 56 键 schema、YAML 行级读写、启动选项持久化
+    ├── config.{h,cpp}  # 61 键 schema、YAML 行级读写、启动选项持久化
     ├── telemetry.{h,cpp}  # 遥测 socket 客户端 + SETCONFIG 下发
     ├── project.{h,cpp}    # 项目根定位、环境探测、cmake 构建、fork/exec 启动游戏
     └── tui.{h,cpp}        # 真彩主题、主面板与配置面板的绘制与交互
@@ -80,7 +80,7 @@ launcher/
 
 | 按键 | 作用 |
 |---|---|
-| `↑` `↓` `PgUp` `PgDn` `Home` `End` | 浏览 11 组 56 键 |
+| `↑` `↓` `PgUp` `PgDn` `Home` `End` | 浏览 12 组 61 键 |
 | `Enter` | 编辑当前项（数字，越界自动夹取到 schema 范围） |
 | `w` | 保存到 `~/.ball/config.yaml` **并**通过 socket 实时应用 |
 | `a` | 仅实时应用（不写文件） |
@@ -100,7 +100,7 @@ btw-launcher status                      # 环境状态
 btw-launcher build                       # cmake + make
 btw-launcher args                        # 打印将传给游戏的命令行（不启动）
 btw-launcher launch --dry-run            # 同上；去掉 --dry-run 才真的启动
-btw-launcher config list                 # 列出 56 键与当前值
+btw-launcher config list                 # 列出 61 键与当前值
 btw-launcher config get paintBalls.speed # 查询单键（文件缺失时回退默认值）
 btw-launcher config set paintBalls.speed 150
 btw-launcher config set lift.weaponInitial 60000 90000 120000

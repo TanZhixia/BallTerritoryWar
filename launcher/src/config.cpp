@@ -12,7 +12,7 @@
 namespace {
 
 ConfigItem FloatItem(const char *key, const char *label, const char *desc, double min_value,
-                     double max_value, double step, double def, bool restart_only = false)
+                     double max_value, double def, bool restart_only = false)
 {
     ConfigItem item;
     item.key = key;
@@ -22,25 +22,23 @@ ConfigItem FloatItem(const char *key, const char *label, const char *desc, doubl
     item.count = 1;
     item.min_value = min_value;
     item.max_value = max_value;
-    item.step = step;
     item.defaults[0] = def;
     item.restart_only = restart_only;
     return item;
 }
 
 ConfigItem IntItem(const char *key, const char *label, const char *desc, double min_value,
-                   double max_value, double step, int def, bool restart_only = false)
+                   double max_value, int def, bool restart_only = false)
 {
-    ConfigItem item = FloatItem(key, label, desc, min_value, max_value, step, def,
-                                restart_only);
+    ConfigItem item = FloatItem(key, label, desc, min_value, max_value, def, restart_only);
     item.type = ConfigItem::Type::Int;
     return item;
 }
 
 ConfigItem ArrayItem(const char *key, const char *label, const char *desc, double min_value,
-                     double max_value, double step, double a, double b, double c)
+                     double max_value, double a, double b, double c)
 {
-    ConfigItem item = FloatItem(key, label, desc, min_value, max_value, step, a);
+    ConfigItem item = FloatItem(key, label, desc, min_value, max_value, a);
     item.type = ConfigItem::Type::FloatArray;
     item.count = 3;
     item.defaults[0] = a;
@@ -53,89 +51,89 @@ std::vector<ConfigGroup> BuildSchema()
 {
     std::vector<ConfigGroup> schema = {
         {"paintBalls", "画笔球", {
-            FloatItem("speed", "速度", "画笔球飞行速度", 10, 400, 5, 120.0),
-            FloatItem("initialValue", "初始价值", "球的初始价值", 0, 100, 1, 15.0),
-            FloatItem("deleteValue", "删除阈值", "价值 ≤ 此值时删除", 0, 10, 0.1, 0.0),
-            FloatItem("radius", "半径", "普通球半径", 1, 10, 0.1, 2.0),
-            FloatItem("pixelCostBase", "涂画基础消耗", "涂画每像素基础消耗", 0, 10, 0.1, 1.0),
-            FloatItem("pixelCostPerMinute", "消耗增长间隔", "每 N 分钟消耗 +1", 0.5, 60, 0.5, 3.0),
-            FloatItem("pixelCostMax", "消耗上限", "涂画消耗上限", 1, 100, 1, 16.0),
+            FloatItem("speed", "速度", "画笔球飞行速度", 10, 400, 120.0),
+            FloatItem("initialValue", "初始价值", "球的初始价值", 0, 100, 15.0),
+            FloatItem("deleteValue", "删除阈值", "价值 ≤ 此值时删除", 0, 10, 0.0),
+            FloatItem("radius", "半径", "普通球半径", 1, 10, 2.0),
+            FloatItem("pixelCostBase", "涂画基础消耗", "涂画每像素基础消耗", 0, 10, 1.0),
+            FloatItem("pixelCostPerMinute", "消耗增长间隔", "每 N 分钟消耗 +1", 0.5, 60, 3.0),
+            FloatItem("pixelCostMax", "消耗上限", "涂画消耗上限", 1, 100, 16.0),
         }},
         {"physics", "物理球", {
-            IntItem("countPerColor", "每队数量", "每队物理球数量", 1, 10, 1, 4, true),
-            FloatItem("initialValue", "初始价值", "物理球初始价值", 100, 1000000, 100, 1000.0, true),
-            FloatItem("radius", "半径", "物理球半径", 2, 30, 0.5, 10.0),
-            FloatItem("gravity", "重力", "机械区重力", 0, 2000, 10, 200.0),
-            FloatItem("launchSpeed", "发射速度", "重置/发射速度", 20, 500, 5, 120.0),
-            FloatItem("restitution", "反弹系数", "1 = 无损耗", 0, 1, 0.05, 1.0),
+            IntItem("countPerColor", "每队数量", "每队物理球数量", 1, 10, 4, true),
+            FloatItem("initialValue", "初始价值", "物理球初始价值", 100, 1000000, 1000.0, true),
+            FloatItem("radius", "半径", "物理球半径", 2, 30, 10.0),
+            FloatItem("gravity", "重力", "机械区重力", 0, 2000, 200.0),
+            FloatItem("launchSpeed", "发射速度", "重置/发射速度", 20, 500, 120.0),
+            FloatItem("restitution", "反弹系数", "1 = 无损耗", 0, 1, 1.0),
         }},
         {"lift", "升力系统", {
-            FloatItem("initialThreshold", "缺口初始阈值", "缺口升力初始阈值（无上限，按增长率一直增长）", 1000, 100000000, 1000, 100000.0),
-            FloatItem("growthPerSecond", "每秒增长率", "0.01 = 1%", 0, 0.1, 0.001, 0.01),
-            FloatItem("acceleration", "升力加速度", "升力加速度", 0, 5000, 50, 1200.0),
-            ArrayItem("weaponInitial", "武器区初始阈值", "*8 / *4 / *2 升力初始阈值（无上限）", 1000, 100000000, 1000, 50000.0, 80000.0, 100000.0),
-            FloatItem("highValueLimit", "前期高价值限制", "10 分钟内超过此值的球在霰弹/狙击列被顶回", 10000, 100000000, 10000, 2000000.0),
+            FloatItem("initialThreshold", "缺口初始阈值", "缺口升力初始阈值（无上限，按增长率一直增长）", 1000, 100000000, 100000.0),
+            FloatItem("growthPerSecond", "每秒增长率", "0.01 = 1%", 0, 0.1, 0.01),
+            FloatItem("acceleration", "升力加速度", "升力加速度", 0, 5000, 1200.0),
+            ArrayItem("weaponInitial", "武器区初始阈值", "*8 / *4 / *2 升力初始阈值（无上限）", 1000, 100000000, 50000.0, 80000.0, 100000.0),
+            FloatItem("highValueLimit", "前期高价值限制", "10 分钟内超过此值的球在霰弹/狙击列被顶回", 10000, 100000000, 2000000.0),
         }},
         {"machineGun", "机枪", {
-            FloatItem("initialAmmo", "初始弹药", "每队初始弹药", 0, 10000000, 10000, 250000.0, true),
-            FloatItem("drainDivisor", "消耗除数", "弹药消耗 = ammo / 此值（每帧）", 100, 100000, 100, 12000.0),
-            FloatItem("minBallValue", "单发最小价值", "单发子弹最小价值", 1, 1000, 1, 20.0),
-            FloatItem("maxBallsPerFrame", "每帧最多发射", "每色每帧发射上限", 1, 100, 1, 10.0),
-            FloatItem("speed", "子弹速度", "机枪子弹速度", 10, 500, 5, 120.0),
-            FloatItem("spreadDeg", "散射角度", "总散射角度（度）", 0, 30, 0.5, 4.0),
-            FloatItem("rotateDegPerFrame", "炮管转速", "无目标时每帧旋转（度）", 0, 10, 0.1, 0.5),
-            FloatItem("lockDistance", "锁定距离", "锁定敌方大球的距离", 50, 1000, 10, 300.0),
+            FloatItem("initialAmmo", "初始弹药", "每队初始弹药", 0, 10000000, 250000.0, true),
+            FloatItem("drainDivisor", "消耗除数", "弹药消耗 = ammo / 此值（每帧）", 100, 100000, 12000.0),
+            FloatItem("minBallValue", "单发最小价值", "单发子弹最小价值", 1, 1000, 20.0),
+            FloatItem("maxBallsPerFrame", "每帧最多发射", "每色每帧发射上限", 1, 100, 10.0),
+            FloatItem("speed", "子弹速度", "机枪子弹速度", 10, 500, 120.0),
+            FloatItem("spreadDeg", "散射角度", "总散射角度（度）", 0, 30, 4.0),
+            FloatItem("rotateDegPerFrame", "炮管转速", "无目标时每帧旋转（度）", 0, 10, 0.5),
+            FloatItem("lockDistance", "锁定距离", "锁定敌方大球的距离", 50, 1000, 300.0),
         }},
         {"shotgun", "霰弹", {
-            FloatItem("fragmentValue", "每份价值", "value / 此值 = 碎片数", 1, 1000, 1, 50.0),
-            IntItem("maxFragments", "碎片上限", "碎片数上限", 10, 10000, 10, 1000),
-            FloatItem("spreadDeg", "散射角度", "总散射角度（度）", 0, 30, 0.5, 4.0),
-            FloatItem("speed", "碎片速度", "碎片速度", 10, 500, 5, 120.0),
+            FloatItem("fragmentValue", "每份价值", "value / 此值 = 碎片数", 1, 1000, 50.0),
+            IntItem("maxFragments", "碎片上限", "碎片数上限", 10, 10000, 1000),
+            FloatItem("spreadDeg", "散射角度", "总散射角度（度）", 0, 30, 4.0),
+            FloatItem("speed", "碎片速度", "碎片速度", 10, 500, 120.0),
         }},
         {"sniper", "狙击", {
-            FloatItem("explosionValue", "爆炸每份价值", "爆炸碎片每份价值", 1, 1000, 1, 50.0),
-            IntItem("maxFragments", "爆炸碎片上限", "爆炸碎片数上限", 10, 10000, 10, 1000),
-            FloatItem("speed", "速度", "狙击/碎片速度", 10, 500, 5, 120.0),
-            FloatItem("jitter", "飞行抖动", "抖动幅度（像素），仅显示层", 0, 20, 0.5, 3.0),
-            IntItem("particlesPerFrame", "每帧粒子数", "飞行时生成的尾迹粒子", 0, 20, 1, 3),
-            FloatItem("selfDestructChance", "每秒自爆概率", "狙击不稳定，0 = 关闭", 0, 1, 0.001, 0.01),
-            FloatItem("dotTrailLife", "光点拖尾时长", "秒，0 = 关闭", 0, 1, 0.01, 0.25),
-            FloatItem("gravityRadius", "引力半径", "吸引此范围内所有球（含大球）", 0, 400, 5, 150.0),
-            FloatItem("gravityStrength", "引力常数 G", "a = G × 质量 / r²", 0, 100, 0.5, 4.0),
-            FloatItem("gravityMaxSpeed", "吸引速度上限", "被吸引球的速度上限（防失控）", 60, 2000, 20, 600.0),
-            FloatItem("gravityValueGain", "引力场增值", "引力场内的小球每秒 +value（0 = 关闭）", 0, 1000, 0.5, 1.0),
+            FloatItem("explosionValue", "爆炸每份价值", "爆炸碎片每份价值", 1, 1000, 50.0),
+            IntItem("maxFragments", "爆炸碎片上限", "爆炸碎片数上限", 10, 10000, 1000),
+            FloatItem("speed", "速度", "狙击/碎片速度", 10, 500, 120.0),
+            FloatItem("jitter", "飞行抖动", "抖动幅度（像素），仅显示层", 0, 20, 3.0),
+            IntItem("particlesPerFrame", "每帧粒子数", "飞行时生成的尾迹粒子", 0, 20, 3),
+            FloatItem("selfDestructChance", "每秒自爆概率", "狙击不稳定，0 = 关闭", 0, 1, 0.01),
+            FloatItem("dotTrailLife", "光点拖尾时长", "秒，0 = 关闭", 0, 1, 0.25),
+            FloatItem("gravityRadius", "引力半径", "吸引此范围内所有球（含大球）", 0, 400, 150.0),
+            FloatItem("gravityStrength", "引力常数 G", "a = G × 质量 / r²", 0, 100, 4.0),
+            FloatItem("gravityMaxSpeed", "吸引速度上限", "被吸引球的速度上限（防失控）", 60, 2000, 600.0),
+            FloatItem("gravityValueGain", "引力场增值", "引力场内的小球每秒 +value（0 = 关闭）", 0, 1000, 1.0),
         }},
         {"bigBall", "大球", {
-            FloatItem("radiusLogOffset", "半径对数偏移", "半径 = (log(value) + 此值) × 2", 0, 20, 0.5, 5.0),
-            FloatItem("radiusMin", "半径下限", "大球半径下限", 1, 50, 1, 2.0),
-            FloatItem("speedFactor", "速度系数", "大球速度 = 画笔球速度 × 此值", 0.1, 2, 0.05, 0.5),
-            FloatItem("trailValue", "拖尾消耗", "每帧扣大球价值", 0, 500, 1, 20.0),
-            FloatItem("gravityRadius", "引力半径", "大球引力半径（吸引大球与狙击碎片）", 0, 1000, 10, 260.0),
-            FloatItem("gravityStrength", "大球引力常数", "敌对大球之间互吸（a = G × value / r²，同色不吸）", 0, 100, 0.5, 0.5),
-            FloatItem("gravityMaxSpeed", "吸引速度上限", "被吸引球的速度上限（防失控）", 60, 2000, 20, 480.0),
-            FloatItem("fragmentGravityStrength", "碎片引力常数", "狙击爆炸碎片被大球吸引（a = G × value / r²，0 = 关闭）", 0, 100, 0.5, 0.5),
-            FloatItem("splitIntervalSeconds", "分裂间隔", "大球每 N 秒分裂成两个 value/2（0 = 关闭）", 0, 600, 5, 60.0),
+            FloatItem("radiusLogOffset", "半径对数偏移", "半径 = (log(value) + 此值) × 2", 0, 20, 5.0),
+            FloatItem("radiusMin", "半径下限", "大球半径下限", 1, 50, 2.0),
+            FloatItem("speedFactor", "速度系数", "大球速度 = 画笔球速度 × 此值", 0.1, 2, 0.5),
+            FloatItem("trailValue", "拖尾消耗", "每帧扣大球价值", 0, 500, 20.0),
+            FloatItem("gravityRadius", "引力半径", "大球引力半径（吸引大球与狙击碎片）", 0, 1000, 260.0),
+            FloatItem("gravityStrength", "大球引力常数", "敌对大球之间互吸（a = G × value / r²，同色不吸）", 0, 100, 0.5),
+            FloatItem("gravityMaxSpeed", "吸引速度上限", "被吸引球的速度上限（防失控）", 60, 2000, 480.0),
+            FloatItem("fragmentGravityStrength", "碎片引力常数", "狙击爆炸碎片被大球吸引（a = G × value / r²，0 = 关闭）", 0, 100, 0.5),
+            FloatItem("splitIntervalSeconds", "分裂间隔", "大球每 N 秒分裂成两个 value/2（0 = 关闭）", 0, 600, 60.0),
         }},
         {"shield", "护盾", {
-            FloatItem("initialValue", "初始护盾", "每队初始护盾", 0, 1000000000, 100000, 10000000.0, true),
-            FloatItem("radius", "半径", "护盾圆半径", 20, 300, 5, 80.0),
+            FloatItem("initialValue", "初始护盾", "每队初始护盾", 0, 1000000000, 10000000.0, true),
+            FloatItem("radius", "半径", "护盾圆半径", 20, 300, 80.0),
         }},
         {"combat", "战斗", {
-            FloatItem("absorbRatio", "吞并倍数", "价值差 ≥ 此倍数直接吞并", 1, 100, 1, 20.0),
-            FloatItem("damageRatio", "伤害比例", "互扣大者价值的此比例", 0, 1, 0.01, 0.1),
+            FloatItem("absorbRatio", "吞并倍数", "价值差 ≥ 此倍数直接吞并", 1, 100, 20.0),
+            FloatItem("damageRatio", "伤害比例", "互扣大者价值的此比例", 0, 1, 0.1),
         }},
         {"gameOver", "结束条件", {
-            IntItem("countdownFrames", "倒计时帧数", "60fps 下 3600 = 60 秒", 60, 36000, 60, 3600),
+            IntItem("countdownFrames", "倒计时帧数", "60fps 下 3600 = 60 秒", 60, 36000, 3600),
         }},
         {"revive", "复活", {
-            IntItem("minPhysicsBalls", "最少物理球", "至少这么多物理球才触发复活（只剩 1 个不复活，0 = 关闭）", 0, 16, 1, 2),
-            FloatItem("delaySeconds", "复活等待", "死亡后等这么多秒才复活（等待期内武器格转护盾）", 0, 300, 5, 60.0),
-            FloatItem("stopSeconds", "停止停顿", "最大的物理球停止移动的停顿时间（秒）", 0, 5, 0.1, 0.5),
-            FloatItem("flightSpeed", "飞行速度", "飞向炮塔的速度（像素/秒）", 20, 3000, 20, 400.0),
-            FloatItem("shieldValueScale", "护盾倍率", "物理球价值 → 护盾值的倍率", 0, 10, 0.1, 1.0),
+            IntItem("minPhysicsBalls", "最少物理球", "至少这么多物理球才触发复活（只剩 1 个不复活，0 = 关闭）", 0, 16, 2),
+            FloatItem("delaySeconds", "复活等待", "死亡后等这么多秒才复活（等待期内武器格转护盾）", 0, 300, 60.0),
+            FloatItem("stopSeconds", "停止停顿", "最大的物理球停止移动的停顿时间（秒）", 0, 5, 0.5),
+            FloatItem("flightSpeed", "飞行速度", "飞向炮塔的速度（像素/秒）", 20, 3000, 400.0),
+            FloatItem("shieldValueScale", "护盾倍率", "物理球价值 → 护盾值的倍率", 0, 10, 1.0),
         }},
         {"startup", "开局", {
-            FloatItem("openingShotgunValue", "开局霰弹总价值", "每队开局向中心发射的霰弹总价值", 0, 100000000, 10000, 2500000.0, true),
+            FloatItem("openingShotgunValue", "开局霰弹总价值", "每队开局向中心发射的霰弹总价值", 0, 100000000, 2500000.0, true),
         }},
     };
     return schema;

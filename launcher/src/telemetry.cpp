@@ -44,7 +44,6 @@ void TelemetryClient::Poll()
 
         const int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
         if (fd < 0) {
-            last_error_ = std::string("socket 创建失败：") + std::strerror(errno);
             return;
         }
         sockaddr_un addr = {};
@@ -52,14 +51,12 @@ void TelemetryClient::Poll()
         std::strncpy(addr.sun_path, kSocketPath, sizeof(addr.sun_path) - 1);
         if (::connect(fd, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) != 0) {
             ::close(fd);
-            last_error_ = "游戏未运行（未连接到遥测 socket）";
             return;
         }
         int yes = 1;
         ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
         fd_ = fd;
         connected_ = true;
-        last_error_.clear();
         buffer_.clear();
     }
 
@@ -72,14 +69,12 @@ void TelemetryClient::Poll()
         }
         if (n == 0) {
             Close();  // 对端关闭
-            last_error_ = "游戏已退出";
             return;
         }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             break;
         }
         Close();
-        last_error_ = std::string("遥测读取失败：") + std::strerror(errno);
         return;
     }
 
@@ -93,7 +88,6 @@ void TelemetryClient::Poll()
         JsonValue parsed;
         std::string error;
         if (!JsonParse(line, parsed, error)) {
-            last_error_ = "遥测 JSON 解析失败：" + error;
             continue;
         }
         if (parsed.Find("territory") == nullptr) {
@@ -101,16 +95,7 @@ void TelemetryClient::Poll()
         }
         stats_ = std::move(parsed);
         has_stats_ = true;
-        last_message_ = NowSeconds();
     }
-}
-
-double TelemetryClient::StatsAge() const
-{
-    if (!has_stats_ || last_message_ < 0.0) {
-        return -1.0;
-    }
-    return NowSeconds() - last_message_;
 }
 
 std::vector<std::string> TelemetryClient::ApplyConfig(

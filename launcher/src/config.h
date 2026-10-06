@@ -6,7 +6,7 @@
 #include <vector>
 
 // ==================== 游戏配置（~/.ball/config.yaml） ====================
-// 与 src/core/config.cpp 的键一一对应（11 组 56 键）。启动器自己读写 YAML：
+// 与 src/core/config.cpp 的键一一对应（12 组 61 键）。启动器自己读写 YAML：
 // 读取用于展示，写入采用「行级替换」以保留注释与结构；文件不存在时按 schema 生成。
 
 struct ConfigItem
@@ -20,7 +20,6 @@ struct ConfigItem
     int count = 1;          // FloatArray 的元素个数
     double min_value = 0.0;
     double max_value = 0.0;
-    double step = 1.0;
     double defaults[3] = {0.0, 0.0, 0.0};
     bool restart_only = false;  // 仅下次启动生效
 };

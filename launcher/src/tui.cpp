@@ -134,7 +134,6 @@ int Tui::Run()
                      "非交互用法请见 btw-launcher --help（status / config / args / build 等子命令）。\n");
         return 1;
     }
-    term::InstallResizeHandler();
 
     std::string out = term::ansi::AltScreen(true) + term::ansi::HideCursor();
     std::fwrite(out.data(), 1, out.size(), stdout);

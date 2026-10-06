@@ -24,9 +24,6 @@ public:
     void Poll();
     bool connected() const { return connected_; }
     const JsonValue *stats() const { return has_stats_ ? &stats_ : nullptr; }
-    const std::string &last_error() const { return last_error_; }
-    // 距最近一帧遥测的秒数（无数据时返回 -1）
-    double StatsAge() const;
 
     // 返回失败项描述；空表示全部成功。未连接时返回 "游戏未运行"
     std::vector<std::string> ApplyConfig(const std::map<std::string, std::string> &updates);
@@ -39,9 +36,7 @@ private:
     JsonValue stats_;
     bool has_stats_ = false;
     bool connected_ = false;
-    std::string last_error_;
     double last_attempt_ = -1.0;
-    double last_message_ = -1.0;
 };
 
 double NowSeconds();
