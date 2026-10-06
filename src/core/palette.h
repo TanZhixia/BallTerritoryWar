@@ -3,7 +3,7 @@
 
 #include <SDL3/SDL.h>
 
-struct BallObject;
+class BallObject;
 struct PhysicsBall;
 
 // 四角配色：每个角一种队伍颜色

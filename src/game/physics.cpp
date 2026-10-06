@@ -159,11 +159,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         for (const PhysicsRect &rect : special_rects) {
             float nx = 0.0f, ny = 0.0f, penetration = 0.0f;
             if (CircleRectCollision(ball, rect, nx, ny, penetration)) {
-                if (rect.multiplier == 1.0f) {
-                    ball.value = 1.0f;  // 底部武器栏
-                } else {
-                    ball.value *= rect.multiplier;  // *2 *4 *8
-                }
+                ball.value *= rect.multiplier;  // *2 *4 *8（底部武器栏不在 special_rects 里）
                 // 冲击波：从落点（球当前所在）向外扩散的白色小波
                 SpawnShockwave(waves, ball.x, ball.y, 20.0f, 0.45f, 2.5f,
                                SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f});
@@ -683,10 +679,8 @@ void DrawOnePhysicsBall(std::vector<Uint8> &canvas, int canvas_width, int canvas
 }  // namespace
 
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                             const std::vector<PhysicsBall> &balls,
-                             const SDL_FColor *pure_colors)
+                             const std::vector<PhysicsBall> &balls)
 {
-    (void)pure_colors;
     const SDL_FColor text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};
     for (const PhysicsBall &ball : balls) {
         if (ball.reviving) {

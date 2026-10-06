@@ -51,8 +51,7 @@ bool UpdateRevivingBall(PhysicsBall &ball, float dt);
 // 在显示画布上画物理球（圆 + 价值文字）；复活飞行中的球跳过（由
 // DrawRevivingPhysicsBalls 画在最上层，飞行过程更醒目）
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                      const std::vector<PhysicsBall> &balls,
-                      const SDL_FColor *pure_colors);
+                      const std::vector<PhysicsBall> &balls);
 // 只画"复活飞行中"的物理球（画在显示层最上方）
 void DrawRevivingPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                               const std::vector<PhysicsBall> &balls);

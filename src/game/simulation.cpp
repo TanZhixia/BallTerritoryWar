@@ -381,9 +381,6 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
             state.machine_gun_ammo[color] = 0.0f;  // 该颜色机枪也被删除
             state.color_alive[color] = false;
 
-            float center_x = 0.0f, center_y = 0.0f;
-            GetColorBlockCenter(color, center_x, center_y);
-
             // 复活判定：数该颜色还剩几个物理球，并挑出价值最大的一个
             std::size_t owned = 0;
             PhysicsBall *biggest = nullptr;
@@ -521,7 +518,8 @@ bool StepGame(GameState &state, std::vector<Uint8> &canvas,
                 "exiting in %d frames", g_config.gameOver.countdownFrames);
     }
     if (state.game_over_started &&
-        state.frame_count - state.game_over_start_frame >= g_config.gameOver.countdownFrames) {
+        state.frame_count - state.game_over_start_frame >=
+            static_cast<Uint64>(std::max(1, g_config.gameOver.countdownFrames))) {
         SDL_Log("Game over, exiting");
         return false;
     }

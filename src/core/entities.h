@@ -8,7 +8,7 @@
 #include "core/config.h"
 
 // ==================== 玩法实体 ====================
-// 说明：BallObject 是“画笔球”（含大球/狙击/星星），PhysicsBall 是左侧机械区的物理球。
+// 说明：BallObject 是“画笔球”（含大球/狙击/狙击爆炸碎片），PhysicsBall 是左侧机械区的物理球。
 
 class BallObject
 {

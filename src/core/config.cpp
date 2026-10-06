@@ -626,7 +626,6 @@ bool LoadConfig()
     if (!warnings.empty()) {
         SDL_Log("config: 部分字段使用默认值：%s", warnings.c_str());
     }
-    g_config.filePath = path;
     SDL_Log("config: 已加载 %s（gravity=%.0f, speed=%.0f, ammo=%.0f）",
             path.c_str(), g_config.physics.gravity, g_config.paintBalls.speed,
             g_config.machineGun.initialAmmo);
@@ -641,7 +640,6 @@ bool ApplyConfigKey(const std::string &key, const std::vector<std::string> &valu
 {
     float f = 0.0f;
     int i = 0;
-    bool b = false;
 
     auto get_num = [&](std::size_t idx, float &out) -> bool {
         if (idx >= values.size()) {
@@ -664,23 +662,6 @@ bool ApplyConfigKey(const std::string &key, const std::vector<std::string> &valu
         }
         out = static_cast<int>(v);
         return true;
-    };
-    auto get_bool = [&](std::size_t idx, bool &out) -> bool {
-        if (idx >= values.size()) {
-            error = key + " 缺少值";
-            return false;
-        }
-        const std::string &s = values[idx];
-        if (s == "true" || s == "1") {
-            out = true;
-            return true;
-        }
-        if (s == "false" || s == "0") {
-            out = false;
-            return true;
-        }
-        error = key + " 布尔值非法: " + s;
-        return false;
     };
     // 数组键（组.键.下标）：直接按前缀匹配
     auto apply_array_branch = [&](const char *prefix, float *target, int count) -> bool {

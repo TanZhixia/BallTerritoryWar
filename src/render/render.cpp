@@ -132,8 +132,7 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
     // 气泡拖尾画在物理球主体之下，被球体盖住一部分更自然
     UpdateBubbles(state.bubbles, 1.0f / 60.0f);
     DrawBubbles(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.bubbles);
-    DrawPhysicsBalls(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.physics_balls,
-                     PURE_COLORS);
+    DrawPhysicsBalls(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.physics_balls);
 
     // 护盾：空心圆，中心是发射点，半径由 shield.radius 配置（默认 80px），使用新颜色
     const SDL_FColor ammo_text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};

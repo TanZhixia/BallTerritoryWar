@@ -138,7 +138,6 @@ struct GameConfig
     GameOverConfig gameOver;
     StartupConfig startup;
     ReviveConfig revive;
-    std::string filePath;  // 实际加载的配置文件路径
 };
 
 extern GameConfig g_config;  // 启动时由 LoadConfig() 填充

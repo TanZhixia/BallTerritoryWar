@@ -141,7 +141,6 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
              left_border_color);
 
     // 横线上的图案：左右各三段 x8 | x4 | x2，中间保留缺口
-    constexpr int ZONE_WIDTH = 75;
     constexpr int SEPARATOR_X[] = {75, 150, 225, 375, 450, 525};
     const SDL_FColor separator_color = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
     const SDL_FColor label_color = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};

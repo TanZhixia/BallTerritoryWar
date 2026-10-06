@@ -35,7 +35,7 @@
 │   │   ├── physics.{h,cpp} # 机械区循环、武器触发、机枪 AI、引力与碰撞结算
 │   │   └── simulation.{h,cpp}  # InitializeGame / StepGame（一帧模拟）
 │   ├── render/             # 显示层
-│   │   ├── canvas.{h,cpp}  # 像素画布原语（圆/星/文字/混合/领土采样）
+│   │   ├── canvas.{h,cpp}  # 像素画布原语（圆/矩形/文字/混合/领土采样）
 │   │   ├── particles.{h,cpp}   # 特效推进与绘制、领土闪光
 │   │   ├── hud.{h,cpp}     # 顶部半透明状态面板
 │   │   ├── render.{h,cpp}  # 显示画布合成顺序
@@ -63,7 +63,7 @@ main 循环（60fps）
 | 画布 | 说明 |
 |---|---|
 | `canvas`（持久/玩法层） | 领土判定的唯一真相。只写入 `PURE_COLORS`（纯色）与 `NEW_COLORS`（柔和显示色）；领土统计**只认纯色** |
-| `display_canvas`（每帧重建） | 拷贝 canvas 后叠加新色涂画、拖尾、粒子、冲击波、闪光、星星/塔、护盾、炮塔、HUD、数值 |
+| `display_canvas`（每帧重建） | 拷贝 canvas 后叠加新色涂画、拖尾、粒子、冲击波、闪光、护盾、炮塔、HUD、数值 |
 
 ---
 
