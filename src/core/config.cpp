@@ -347,6 +347,37 @@ void YamlNumArray(const YamlNode &group, const char *key, float *target, int cou
     }
 }
 
+// 这些配置项在算式里充当除数或步长，取 0（或负数）会导致：
+// 浮点 inf 再转 int（C++ 未定义行为）、机枪拦截模拟的死循环、复活球永远飞不到炮塔。
+// YAML 手改与遥测 SETCONFIG 都不经过启动器的范围校验，因此在加载与热更新后统一夹到
+// 安全下限（正常取值不受影响，只有非法值才会被顶到这里）。
+void SanitizeDivisors()
+{
+    struct Guard
+    {
+        const char *key;
+        float *value;
+        float floor_value;
+    };
+    const Guard guards[] = {
+        {"paintBalls.pixelCostPerMinute", &g_config.paintBalls.pixelCostPerMinute, 0.001f},
+        {"machineGun.drainDivisor", &g_config.machineGun.drainDivisor, 1.0f},
+        {"machineGun.maxBallsPerFrame", &g_config.machineGun.maxBallsPerFrame, 1.0f},
+        {"machineGun.speed", &g_config.machineGun.speed, 1.0f},
+        {"shotgun.fragmentValue", &g_config.shotgun.fragmentValue, 0.001f},
+        {"sniper.explosionValue", &g_config.sniper.explosionValue, 0.001f},
+        {"revive.flightSpeed", &g_config.revive.flightSpeed, 1.0f},
+    };
+    for (const Guard &guard : guards) {
+        if (*guard.value < guard.floor_value) {
+            SDL_Log("config: %s=%.4g 过小（会导致除零/死循环），已夹到 %.4g", guard.key,
+                    static_cast<double>(*guard.value),
+                    static_cast<double>(guard.floor_value));
+            *guard.value = guard.floor_value;
+        }
+    }
+}
+
 const char *DefaultConfigYaml()
 {
     return R"(# Ball Territory War 配置文件
@@ -626,6 +657,7 @@ bool LoadConfig()
     if (!warnings.empty()) {
         SDL_Log("config: 部分字段使用默认值：%s", warnings.c_str());
     }
+    SanitizeDivisors();
     SDL_Log("config: 已加载 %s（gravity=%.0f, speed=%.0f, ammo=%.0f）",
             path.c_str(), g_config.physics.gravity, g_config.paintBalls.speed,
             g_config.machineGun.initialAmmo);
@@ -763,6 +795,7 @@ bool ApplyConfigKey(const std::string &key, const std::vector<std::string> &valu
         return false;
     }
 
+    SanitizeDivisors();  // 热更新同样要防除零/死循环
     std::string joined;
     for (const std::string &v : values) {
         if (!joined.empty()) joined += ' ';
