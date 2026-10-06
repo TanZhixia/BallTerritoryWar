@@ -6,6 +6,7 @@
 #include "core/palette.h"
 #include "game/physics.h"
 #include "game/scene.h"
+#include "game/simulation.h"
 #include "render/canvas.h"
 #include "render/hud.h"
 #include "render/particles.h"
@@ -98,12 +99,12 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
     // 领土新增闪光：翻色像素被点亮，逐帧衰减淡出（仅显示层）
     UpdateAndDrawTerritoryFlash(display_canvas, state.territory_flash);
 
-    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药 + 复活中提示）
+    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药 + 复活中提示）。
+    // 复活提示覆盖整个复活流程（等待期 + 飞行期），与遥测/启动器同一个判定口径，
+    // 否则基地刚失守的 60 秒等待期内 HUD 会误显示成“已灭”
     bool hud_reviving[4] = {false, false, false, false};
-    for (const PhysicsBall &pb : state.physics_balls) {
-        if (pb.reviving) {
-            hud_reviving[FindPhysicsColorIndex(pb, PURE_COLORS)] = true;
-        }
+    for (int color = 0; color < 4; ++color) {
+        hud_reviving[color] = IsRevivalPending(state, color);
     }
     DrawHUD(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.hud_territory,
             state.shield_remaining, state.machine_gun_ammo, state.color_alive,

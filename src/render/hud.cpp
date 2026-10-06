@@ -70,16 +70,16 @@ void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
         DrawText(canvas, canvas_width, canvas_height,
                  x + 12, PANEL_Y + 2, line1, (alive || reviving) ? white : dim, 2);
 
-        // 第二行（2 倍字）：护盾
+        // 第二行（2 倍字）：护盾（复活流程中照样显示——等待期武器格正在往这里攒护盾）
         char line2[24];
         std::snprintf(line2, sizeof(line2), "SH %s",
-                      alive ? FormatValue(shield_remaining[color]).c_str() : "--");
+                      (alive || reviving) ? FormatValue(shield_remaining[color]).c_str() : "--");
         DrawText(canvas, canvas_width, canvas_height, x + 12, PANEL_Y + 20,
                  line2, dim, 2);
 
         // 第三行（2 倍字）：弹药
         std::snprintf(line2, sizeof(line2), "AM %s",
-                      alive ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
+                      (alive || reviving) ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
         DrawText(canvas, canvas_width, canvas_height, x + 12, PANEL_Y + 38,
                  line2, dim, 2);
     }
