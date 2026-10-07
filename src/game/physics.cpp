@@ -10,6 +10,20 @@
 
 #include <algorithm>
 #include <cmath>
+// 物理球半径：与自身 value 有关（值越大球越大），但用"标尺"归一化 ——
+// 标尺取按 lift.growthPerSecond 每秒 +1% 复利增长的升力阈值，于是
+// **同样的数值越往后半径越小**，半径始终落在 [physics.radius, physics.radius × 2.4]，
+// 不会随数值膨胀（后期 value 轻松上亿）而无上限变大。
+//   ratio = value / 标尺，fullness = ratio / (1 + ratio) 单调饱和到 1
+float PhysicsBallRadius(float value, float reference)
+{
+    constexpr float kRadiusGain = 1.4f;  // 最大半径 = 基础半径 ×(1 + 1.4) = 2.4 倍
+    const float base = g_config.physics.radius;
+    const float ratio = std::max(0.0f, value) / std::max(1.0f, reference);
+    const float fullness = ratio / (1.0f + ratio);
+    return base * (1.0f + kRadiusGain * fullness);
+}
+
 float BigBallRadius(float value)
 {
     // log(x) + radiusLogOffset，整体 ×2（大小为原来的两倍），仅保留下限钳制（上限已删除）
@@ -109,6 +123,8 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
     };
 
     for (PhysicsBall &ball : balls) {
+        // 半径随自身 value 变化（标尺 = 随时间增长的升力阈值，见 PhysicsBallRadius）
+        ball.radius = PhysicsBallRadius(ball.value, lift_threshold);
         ball.vy += g_config.physics.gravity * dt;
         // 水中的浮力（缺口 → 下方挡板那一柱）：物理球的"质量"与 value 成正比，
         // 而浮力对所有球都相同，取「浮力加速度 = g × 阈值 / value」；阈值就是

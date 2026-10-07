@@ -15,6 +15,10 @@
 // 大球半径 = (log(value) + radiusLogOffset) × 2（下限 radiusMin）
 float BigBallRadius(float value);
 
+// 物理球半径：随自身 value 变大，用按时间增长的标尺（升力阈值）归一化，
+// 因此同样的 value 越往后越小；结果落在 [physics.radius, physics.radius × 2.4]
+float PhysicsBallRadius(float value, float reference);
+
 // 狙击爆炸：按 explosionValue 把价值切成最多 maxFragments 份，360° 飞散
 void SpawnSniperExplosion(std::vector<BallObject> &spawns, const BallObject &sniper);
 // 狙击引力场：吸引半径内所有非狙击球（含大球），按 a = G*M/r^2 加速，狙击自身不动；
