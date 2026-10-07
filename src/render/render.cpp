@@ -12,6 +12,7 @@
 #include "render/hud.h"
 #include "render/particles.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -122,11 +123,15 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
                         ball.x, ball.y, ball.radius, ball.new_color);
         }
         const std::string big_value = FormatValue(ball.value);
-        const int big_text_width = MeasureTextFont(big_value.c_str());
-        DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                     static_cast<int>(ball.x) - big_text_width / 2,
-                     static_cast<int>(ball.y) - FONT_LINE_HEIGHT / 2,
-                     big_value.c_str(), big_text_color);
+        // 球内数字与球径成固定比例（基准：半径 37.6 的球 = 1.0×，即 16px 字），
+        // 下限 0.75× 保证刚出生的小球也读得清
+        const float text_scale = std::max(0.75f, ball.radius / 37.6f);
+        const int text_height = ScaledFontLineHeight(text_scale);
+        const int big_text_width = MeasureTextFontScaled(big_value.c_str(), text_scale);
+        DrawTextFontScaled(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                           static_cast<int>(ball.x) - big_text_width / 2,
+                           static_cast<int>(ball.y) - text_height / 2,
+                           big_value.c_str(), big_text_color, text_scale);
     }
     // 气泡拖尾画在物理球主体之下，被球体盖住一部分更自然
     UpdateBubbles(state.bubbles, 1.0f / 60.0f);
@@ -151,7 +156,7 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
             (color == 0 || color == 1)
                 ? static_cast<int>(center_y) + static_cast<int>(g_config.shield.radius) + 10
                 : static_cast<int>(center_y) - static_cast<int>(g_config.shield.radius) -
-                      FONT_LINE_HEIGHT;
+                      FontLineHeight();
         DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
                      static_cast<int>(center_x) - shield_text_width / 2,
                      shield_text_y, shield_text.c_str(), ammo_text_color);
@@ -185,7 +190,7 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
         const int text_width = MeasureTextFont(ammo_text);
         DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
                      static_cast<int>(center_x) - text_width / 2,
-                     static_cast<int>(center_y) - FONT_LINE_HEIGHT / 2,
+                     static_cast<int>(center_y) - FontLineHeight() / 2,
                      ammo_text, ammo_text_color);
     }
 

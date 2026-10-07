@@ -31,7 +31,7 @@ void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
         const int zone_w = EDGES[i + 1] - EDGES[i];
         const int text_width = MeasureTextFont(LABELS[i]);
         const int text_x = EDGES[i] + (zone_w - text_width) / 2;
-        const int text_y = BAR_Y + (BAR_H - FONT_LINE_HEIGHT) / 2;
+        const int text_y = BAR_Y + (BAR_H - FontLineHeight()) / 2;
         DrawTextFont(canvas, canvas_width, canvas_height, text_x, text_y, LABELS[i], label);
     }
 }
@@ -145,7 +145,7 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
     constexpr int ZONE_WIDTH = 75;       // 每个倍率分区的宽度（文字在其中居中）
     const SDL_FColor separator_color = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
     const SDL_FColor label_color = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};
-    constexpr int LABEL_Y = WALL_Y - FONT_LINE_HEIGHT / 2;  // 行高 18 居中于 20px 带
+    const int LABEL_Y = WALL_Y - FontLineHeight() / 2;  // 行高 18 居中于 20px 带
 
     for (int separator_x : SEPARATOR_X) {
         FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,

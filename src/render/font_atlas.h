@@ -3,24 +3,27 @@
 
 #include <cstdint>
 
-// ==================== 位图字形表（界面中文 / 状态文案） ====================
+// ==================== 位图字形表（画面里的全部文字） ====================
 // 字形来自系统字体（Hiragino Sans GB W6），由 scripts/gen_font_atlas.py 在**生成期**
-// 栅格化成 16px 抗锯齿覆盖率位图，结果放在 render/font_atlas.cpp。
+// 栅格化成抗锯齿覆盖率位图，结果放在 render/font_atlas.cpp。
 // 游戏运行时不加载字体文件、不依赖第三方库，只读这里的位图并逐像素混合，
 // 因此窗口截图/录像与直接调用字体渲染的效果一致。
 //
+// 两套表：
+//   * FontSmall()（16px）：界面与固定排版——武器名、HUD、护盾/弹药、物理球价值、×8/×4/×2
+//   * FontLarge()（32px）：数值专用，供随大球半径缩放的球内数字缩采样使用
+//     （从大字表缩小比把小字表放大清晰得多）
+// 行高与基线由脚本按实际墨迹测量后写进生成文件，这里不再硬编码。
+//
 // 换字体、改字号或增删文案：改脚本参数后重跑
 //     python3 scripts/gen_font_atlas.py
-// 并同步下面的行高/基线常量。
 
-constexpr int FONT_LINE_HEIGHT = 18;  // 一行占的像素高度（含下伸部分）
-constexpr int FONT_BASELINE = 15;     // 行顶到基线的距离
 constexpr int FONT_UNKNOWN_ADVANCE = 8;  // 未收录字符按此宽度跳过
 
 struct FontGlyph
 {
     uint32_t codepoint;    // Unicode 码点
-    uint8_t advance;       // 笔前进（像素）
+    uint8_t advance;       // 笔前进（像素，按烘焙字号）
     uint8_t width;         // 位图宽（紧致裁剪；0 = 无墨迹，如空格）
     uint8_t height;        // 位图高
     int8_t offset_x;       // 位图左上角相对笔位置的水平偏移
@@ -28,10 +31,25 @@ struct FontGlyph
     const uint8_t *alpha;  // width×height 个覆盖率（0-255，行优先）
 };
 
-// 查字形；未收录返回 nullptr
-const FontGlyph *FindFontGlyph(uint32_t codepoint);
-// 文本像素宽度（UTF-8）；未收录字符按 FONT_UNKNOWN_ADVANCE 计
-int MeasureFontText(const char *utf8);
+struct FontTable
+{
+    const FontGlyph *glyphs;
+    int count;
+    int line_height;   // 该字号的行高（像素）
+    int baseline;      // 行顶到基线
+    int nominal_size;  // 烘焙字号（用于两套表之间的缩放换算）
+};
+
+const FontTable &FontSmall();
+const FontTable &FontLarge();
+
+// 主字号行高（= FontSmall().line_height），界面排版常用
+inline int FontLineHeight() { return FontSmall().line_height; }
+
+// 在指定表里查字形；未收录返回 nullptr
+const FontGlyph *FindFontGlyph(const FontTable &table, uint32_t codepoint);
+// 文本像素宽度（UTF-8，按该表的烘焙字号）
+int MeasureFontText(const FontTable &table, const char *utf8);
 // 生成这份字表时收录的字符（调试与文档用）
 const char *FontAtlasCharset();
 

@@ -673,7 +673,7 @@ void DrawOnePhysicsBall(std::vector<Uint8> &canvas, int canvas_width, int canvas
     const int text_width = MeasureTextFont(value_text.c_str());
     DrawTextFont(canvas, canvas_width, canvas_height,
                  static_cast<int>(ball.x) - text_width / 2,
-                 static_cast<int>(ball.y) - FONT_LINE_HEIGHT / 2,
+                 static_cast<int>(ball.y) - FontLineHeight() / 2,
                  value_text.c_str(), text_color);
 }
 }  // namespace

@@ -24,8 +24,8 @@ constexpr float PANEL_RADIUS = 10.0f;
 constexpr int GAP_X = 10;
 constexpr int BLOCK_W = (PANEL_W - 2 * GAP_X - 3 * 6) / 4;  // 4 队
 constexpr int ROW_NAME_Y = PANEL_Y + 3;                      // 队名 + 领土占比
-constexpr int ROW_SHIELD_Y = ROW_NAME_Y + FONT_LINE_HEIGHT;  // 护盾
-constexpr int ROW_AMMO_Y = ROW_SHIELD_Y + FONT_LINE_HEIGHT;  // 弹药
+const int ROW_SHIELD_Y = ROW_NAME_Y + FontLineHeight();  // 护盾
+const int ROW_AMMO_Y = ROW_SHIELD_Y + FontLineHeight();  // 弹药
 
 const char *const kTeamNames[4] = {"红队", "绿队", "蓝队", "黄队"};
 

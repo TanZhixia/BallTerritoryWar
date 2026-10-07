@@ -162,7 +162,7 @@ void FillRect(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
 
 int MeasureTextFont(const char *utf8)
 {
-    return MeasureFontText(utf8);
+    return MeasureFontText(FontSmall(), utf8);
 }
 
 int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
@@ -175,7 +175,7 @@ int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height
     int pen_x = x;
     for (const char *p = text; p != nullptr && *p != 0;) {
         const uint32_t codepoint = DecodeUtf8(&p);
-        const FontGlyph *glyph = FindFontGlyph(codepoint);
+        const FontGlyph *glyph = FindFontGlyph(FontSmall(), codepoint);
         if (glyph == nullptr) {
             pen_x += FONT_UNKNOWN_ADVANCE;  // 字表没收录：跳过，不留空白方块
             continue;
@@ -209,6 +209,211 @@ int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height
             }
         }
         pen_x += glyph->advance;
+    }
+    return pen_x;
+}
+
+// ---- 按比例缩放绘制（球内数字随球径变化时用） ----
+// 放大时刻意改用大号字表（2×）缩小采样，而不是把小字表放大，边缘才不会糊。
+namespace {
+
+struct FontChoice
+{
+    const FontTable *table;
+    float scale;  // 在该表内的缩放系数
+};
+
+// scale 是相对主字号（FontSmall）的倍数。表内位图要乘的系数 = scale × 主字号 / 该表字号。
+float TableScaleFor(const FontTable &table, float scale)
+{
+    if (table.nominal_size <= 0) {
+        return scale;
+    }
+    return scale * static_cast<float>(FontSmall().nominal_size) /
+           static_cast<float>(table.nominal_size);
+}
+
+FontChoice ChooseFont(float scale)
+{
+    if (scale <= 1.0f) {
+        const FontTable &small = FontSmall();
+        return {&small, TableScaleFor(small, scale)};
+    }
+    const FontTable &large = FontLarge();
+    return {&large, TableScaleFor(large, scale)};
+}
+
+const FontTable &OtherTable(const FontTable &table)
+{
+    return (&table == &FontSmall()) ? FontLarge() : FontSmall();
+}
+
+// 双线性采样覆盖率（越界夹到边缘）
+float SampleGlyphBilinear(const uint8_t *alpha, int width, int height, float x, float y)
+{
+    if (x < 0.0f) {
+        x = 0.0f;
+    }
+    if (y < 0.0f) {
+        y = 0.0f;
+    }
+    if (x > static_cast<float>(width - 1)) {
+        x = static_cast<float>(width - 1);
+    }
+    if (y > static_cast<float>(height - 1)) {
+        y = static_cast<float>(height - 1);
+    }
+    const int x0 = static_cast<int>(x);
+    const int y0 = static_cast<int>(y);
+    const int x1 = std::min(x0 + 1, width - 1);
+    const int y1 = std::min(y0 + 1, height - 1);
+    const float fx = x - static_cast<float>(x0);
+    const float fy = y - static_cast<float>(y0);
+    const float top =
+        alpha[y0 * width + x0] * (1.0f - fx) + alpha[y0 * width + x1] * fx;
+    const float bottom =
+        alpha[y1 * width + x0] * (1.0f - fx) + alpha[y1 * width + x1] * fx;
+    return top * (1.0f - fy) + bottom * fy;
+}
+
+// 取一个目标像素的覆盖率：放大用双线性插值；缩小按源/目标比例做 N×N 分层平均（抗锯齿）
+float SampleGlyphCoverage(const uint8_t *alpha, int width, int height,
+                          float center_x, float center_y, float source_per_dest)
+{
+    if (source_per_dest <= 1.0f) {
+        return SampleGlyphBilinear(alpha, width, height, center_x, center_y);
+    }
+    int samples = static_cast<int>(std::ceil(source_per_dest));
+    if (samples > 4) {
+        samples = 4;
+    }
+    float sum = 0.0f;
+    for (int j = 0; j < samples; ++j) {
+        for (int i = 0; i < samples; ++i) {
+            const float ox = (static_cast<float>(i) + 0.5f) / samples - 0.5f;
+            const float oy = (static_cast<float>(j) + 0.5f) / samples - 0.5f;
+            sum += SampleGlyphBilinear(alpha, width, height,
+                                       center_x + ox * source_per_dest,
+                                       center_y + oy * source_per_dest);
+        }
+    }
+    return sum / static_cast<float>(samples * samples);
+}
+
+}  // namespace
+
+int ScaledFontLineHeight(float scale)
+{
+    return static_cast<int>(static_cast<float>(FontSmall().line_height) * scale + 0.5f);
+}
+
+int MeasureTextFontScaled(const char *utf8, float scale)
+{
+    if (scale <= 0.0f) {
+        return 0;
+    }
+    const FontChoice choice = ChooseFont(scale);
+    int width = 0;
+    for (const char *p = utf8; p != nullptr && *p != 0;) {
+        const uint32_t codepoint = DecodeUtf8(&p);
+        const FontGlyph *glyph = FindFontGlyph(*choice.table, codepoint);
+        float table_scale = choice.scale;
+        if (glyph == nullptr) {
+            // 所选表没有这个字：换另一套表，并按同一目标字号换算缩放系数
+            const FontTable &other = OtherTable(*choice.table);
+            glyph = FindFontGlyph(other, codepoint);
+            table_scale = TableScaleFor(other, scale);
+        }
+        if (glyph == nullptr) {
+            width += FONT_UNKNOWN_ADVANCE;
+            continue;
+        }
+        width += std::max(1, static_cast<int>(
+                                 static_cast<float>(glyph->advance) * table_scale + 0.5f));
+    }
+    return width;
+}
+
+int DrawTextFontScaled(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                       int x, int y, const char *text, const SDL_FColor &color,
+                       float scale)
+{
+    if (scale <= 0.0f) {
+        return x;
+    }
+    const int cr = static_cast<int>(color.r * 255.0f + 0.5f);
+    const int cg = static_cast<int>(color.g * 255.0f + 0.5f);
+    const int cb = static_cast<int>(color.b * 255.0f + 0.5f);
+    const FontChoice choice = ChooseFont(scale);
+    // 两套表的"行内比例"不同（小表由中文墨迹定行高、大表只有拉丁数字），
+    // 因此按**基线**对齐而不是按行顶：目标行内的基线位置始终取主字号的比例，
+    // 这样在 1.0× 附近切换字表时文字不会上下跳位。
+    const int baseline_offset =
+        static_cast<int>(static_cast<float>(FontSmall().baseline) * scale + 0.5f);
+
+    int pen_x = x;
+    for (const char *p = text; p != nullptr && *p != 0;) {
+        const uint32_t codepoint = DecodeUtf8(&p);
+        const FontTable *table = choice.table;
+        float table_scale = choice.scale;
+        const FontGlyph *glyph = FindFontGlyph(*table, codepoint);
+        if (glyph == nullptr) {
+            table = &OtherTable(*choice.table);  // 换另一套表再找一次
+            table_scale = TableScaleFor(*table, scale);
+            glyph = FindFontGlyph(*table, codepoint);
+        }
+        if (glyph == nullptr) {
+            pen_x += FONT_UNKNOWN_ADVANCE;
+            continue;
+        }
+        if (glyph->alpha != nullptr && glyph->width > 0 && glyph->height > 0) {
+            const int dest_w = std::max(1, static_cast<int>(
+                                               static_cast<float>(glyph->width) * table_scale + 0.5f));
+            const int dest_h = std::max(1, static_cast<int>(
+                                               static_cast<float>(glyph->height) * table_scale + 0.5f));
+            const float source_per_dest = 1.0f / table_scale;
+            const int dest_x0 =
+                pen_x + static_cast<int>(static_cast<float>(glyph->offset_x) * table_scale +
+                                         (glyph->offset_x >= 0 ? 0.5f : -0.5f));
+            const int dest_y0 =
+                y + baseline_offset +
+                static_cast<int>(
+                    static_cast<float>(glyph->offset_y - table->baseline) * table_scale +
+                    (glyph->offset_y >= table->baseline ? 0.5f : -0.5f));
+            for (int dy = 0; dy < dest_h; ++dy) {
+                const int py = dest_y0 + dy;
+                if (py < 0 || py >= canvas_height) {
+                    continue;
+                }
+                const float sy =
+                    (static_cast<float>(dy) + 0.5f) * source_per_dest - 0.5f;
+                for (int dx = 0; dx < dest_w; ++dx) {
+                    const int px = dest_x0 + dx;
+                    if (px < 0 || px >= canvas_width) {
+                        continue;
+                    }
+                    const float sx =
+                        (static_cast<float>(dx) + 0.5f) * source_per_dest - 0.5f;
+                    const float coverage = SampleGlyphCoverage(
+                        glyph->alpha, glyph->width, glyph->height, sx, sy, source_per_dest);
+                    if (coverage <= 0.003f) {
+                        continue;
+                    }
+                    const std::size_t index =
+                        (static_cast<std::size_t>(py) * canvas_width + px) * 4;
+                    const float inv = 1.0f - coverage;
+                    canvas[index] = static_cast<Uint8>(
+                        static_cast<float>(cr) * coverage + canvas[index] * inv + 0.5f);
+                    canvas[index + 1] = static_cast<Uint8>(
+                        static_cast<float>(cg) * coverage + canvas[index + 1] * inv + 0.5f);
+                    canvas[index + 2] = static_cast<Uint8>(
+                        static_cast<float>(cb) * coverage + canvas[index + 2] * inv + 0.5f);
+                    canvas[index + 3] = 255;
+                }
+            }
+        }
+        pen_x += std::max(1, static_cast<int>(
+                                 static_cast<float>(glyph->advance) * table_scale + 0.5f));
     }
     return pen_x;
 }

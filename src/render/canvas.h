@@ -32,6 +32,15 @@ int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height
                  int x, int y, const char *text, const SDL_FColor &color);
 // 位图字体的文本像素宽度（UTF-8），用于居中排版
 int MeasureTextFont(const char *utf8);
+// 按缩放绘制（1.0 = 主字号 16px）：放大时自动改用 2× 的大号字表缩小采样，边缘依旧平滑。
+// 用于随大球半径缩放的球内数字。y 是行顶，行高见 ScaledFontLineHeight()。
+int DrawTextFontScaled(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                       int x, int y, const char *text, const SDL_FColor &color,
+                       float scale);
+// 同上，只算宽度（用于居中）
+int MeasureTextFontScaled(const char *utf8, float scale);
+// 该缩放下的行高（像素）：主字号行高 × scale
+int ScaledFontLineHeight(float scale);
 void DrawHollowCircle(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                       float cx, float cy, float radius,
                       const SDL_FColor &color, float thickness);
