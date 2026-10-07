@@ -11,6 +11,7 @@
 #include "render/font_atlas.h"
 #include "render/hud.h"
 #include "render/particles.h"
+#include "render/water.h"
 
 #include <algorithm>
 #include <cmath>
@@ -137,6 +138,9 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
     UpdateBubbles(state.bubbles, 1.0f / 60.0f);
     DrawBubbles(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.bubbles);
     DrawPhysicsBalls(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.physics_balls);
+
+    // 升力缺口里的水：画在物理球之后，穿过缺口的球看起来是隔着水看到的
+    DrawLiftWater(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.frame_count);
 
     // 护盾：空心圆，中心是发射点，半径由 shield.radius 配置（默认 80px），使用新颜色
     const SDL_FColor ammo_text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};

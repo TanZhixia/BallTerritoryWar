@@ -127,11 +127,11 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
              0, 0, LEFT_AREA_WIDTH, LEFT_BORDER_WIDTH, left_border_color);
 
-    // y=400 的横线，宽度 20，中间留缺口
-    constexpr int WALL_Y = 400;
-    constexpr int WALL_HALF = LEFT_BORDER_WIDTH / 2;
-    constexpr int GAP_CENTER_X = 300;
-    constexpr int GAP_HALF = 75;
+    // y=400 的横线，宽度 20，中间留缺口（几何与水面等显示元素共用，见 scene.h）
+    constexpr int WALL_Y = static_cast<int>(LIFT_WALL_Y);
+    constexpr int WALL_HALF = static_cast<int>(LIFT_WALL_HALF);
+    constexpr int GAP_CENTER_X = static_cast<int>(LIFT_GAP_CENTER_X);
+    constexpr int GAP_HALF = static_cast<int>(LIFT_GAP_HALF);
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
              0, WALL_Y - WALL_HALF, GAP_CENTER_X - GAP_HALF, LEFT_BORDER_WIDTH,
              left_border_color);

@@ -31,6 +31,7 @@ add_executable(main
     src/render/hud.cpp
     src/render/particles.cpp
     src/render/render.cpp
+    src/render/water.cpp
 )
 
 target_include_directories(main PRIVATE src)

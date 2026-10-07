@@ -9,6 +9,12 @@
 
 // ==================== 静态场景与布局几何 ====================
 
+// 机械区中央水平挡板与其缺口（显示层的水面等需要与 BuildStaticScene 共用同一组几何）
+constexpr float LIFT_WALL_Y = 400.0f;       // 挡板中心线 y
+constexpr float LIFT_WALL_HALF = 10.0f;     // 挡板半高（上下各 10px，即 y=390~410）
+constexpr float LIFT_GAP_CENTER_X = 300.0f; // 缺口中心 x
+constexpr float LIFT_GAP_HALF = 75.0f;      // 缺口半宽（x=225~375）
+
 // 四角基地中心（color_index: 0 左上红 / 1 右上绿 / 2 左下蓝 / 3 右下黄）
 void GetColorBlockCenter(int color_index, float &x, float &y);
 // 机械区的固定灰色阻挡圆点：乘法带以上 3 排 + 乘法带以下 4 排，均为交错排列，
