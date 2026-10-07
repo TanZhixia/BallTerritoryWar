@@ -21,6 +21,9 @@ float BigBallRadius(float value)
 int g_next_big_ball_id = 1;  // 大球唯一编号（BIGBALL 武器格与基地转化共用）
 bool g_weapon_lift_enabled = true;  // 武器带/前期限制升力开关（--no-weapon-lift 关闭）
 
+// 水里的竖向阻尼（1/秒）：轻球浮到水面后会稳定下来，下沉的球也有个终端速度
+constexpr float kWaterDragPerSecond = 6.0f;
+
 // PURE_COLORS / NEW_COLORS（队伍配色）已移至 core/palette.cpp
 
 static bool CircleRectCollision(const PhysicsBall &ball, const PhysicsRect &rect,
@@ -113,11 +116,20 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
             continue;
         }
         ball.vy += g_config.physics.gravity * dt;
-        // 中间空隙区域的升力：宽度为缺口，高度 200px，只对 value 低于当前阈值的球生效
-        if (ball.x >= 225.0f && ball.x <= 375.0f &&
-            ball.y >= 300.0f && ball.y <= 500.0f &&
-            ball.value < lift_threshold) {
-            ball.vy -= g_config.lift.acceleration * dt;
+        // 水中的浮力（缺口 → 下方挡板那一柱）：物理球的"质量"与 value 成正比，
+        // 而浮力对所有球都相同，取「浮力加速度 = g × 阈值 / value」；阈值就是
+        // lift_threshold，按 lift.growthPerSecond 每秒 +1% 复利增长 → 浮力随时间变大。
+        // 注意重力上面已经加过，这里只补浮力这一项，净加速度才是
+        //     a = g × (1 − 阈值 / value)
+        //   value < 阈值 → 上浮（越轻越快，浮力上限沿用 lift.acceleration）
+        //   value = 阈值 → 悬浮；value > 阈值 → 下沉（浮力一直托着，所以比空气中慢）
+        // 再叠一层竖向流体阻尼：轻球会稳稳浮在水面附近，而不是无限来回弹。
+        if (InLiftWater(ball.x, ball.y)) {
+            const float ratio = lift_threshold / std::max(1.0f, ball.value);
+            const float buoyancy = std::min(g_config.physics.gravity * ratio,
+                                            g_config.lift.acceleration);
+            ball.vy -= buoyancy * dt;
+            ball.vy *= std::max(0.0f, 1.0f - kWaterDragPerSecond * dt);
         }
         // *8/*4/*2 上方升力：高于对应阈值的球生效（启动器可关闭）。
         // 只作用于乘法带以上（y ≤ 带顶 390）：已经落到带以下的球不再被顶回带上，

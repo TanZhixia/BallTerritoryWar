@@ -14,6 +14,17 @@ constexpr float LIFT_WALL_Y = 400.0f;       // 挡板中心线 y
 constexpr float LIFT_WALL_HALF = 10.0f;     // 挡板半高（上下各 10px，即 y=390~410）
 constexpr float LIFT_GAP_CENTER_X = 300.0f; // 缺口中心 x
 constexpr float LIFT_GAP_HALF = 75.0f;      // 缺口半宽（x=225~375）
+constexpr float LIFT_WATER_BOTTOM_Y = 430.0f;  // 水柱底部：与下方横挡板（y=410~430）齐平
+
+// 该点是否在水里（缺口 → 下方挡板之间那一柱）。
+// 物理球的浮力只在这里生效；水面在 y=390 附近，与 drawLiftWater 画的那柱水一致。
+inline bool InLiftWater(float x, float y)
+{
+    return x >= LIFT_GAP_CENTER_X - LIFT_GAP_HALF &&
+           x <= LIFT_GAP_CENTER_X + LIFT_GAP_HALF &&
+           y >= LIFT_WALL_Y - LIFT_WALL_HALF &&
+           y <= LIFT_WATER_BOTTOM_Y;
+}
 
 // 四角基地中心（color_index: 0 左上红 / 1 右上绿 / 2 左下蓝 / 3 右下黄）
 void GetColorBlockCenter(int color_index, float &x, float &y);

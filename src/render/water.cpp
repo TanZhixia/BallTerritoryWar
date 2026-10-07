@@ -78,7 +78,8 @@ void DrawLiftWater(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
     const int left = static_cast<int>(LIFT_GAP_CENTER_X - LIFT_GAP_HALF);
     const int right = static_cast<int>(LIFT_GAP_CENTER_X + LIFT_GAP_HALF);
     const int top = static_cast<int>(LIFT_WALL_Y - LIFT_WALL_HALF);
-    const int bottom = std::min(static_cast<int>(LIFT_WALL_Y + LIFT_WALL_HALF), canvas_height);
+    // 水一直铺到下方挡板（y=410~430）的高度为止，缺口下方那一柱就是水池
+    const int bottom = std::min(static_cast<int>(LIFT_WATER_BOTTOM_Y), canvas_height);
     if (right <= left || bottom <= top) {
         return;
     }
