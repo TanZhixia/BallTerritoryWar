@@ -1,5 +1,7 @@
 #include "game/scene.h"
 
+#include <cstdio>
+
 #include "core/constants.h"
 #include "core/math_utils.h"
 #include "core/palette.h"
@@ -9,28 +11,27 @@
 // 底部武器栏：5 格（霰弹 / 机枪 / 护盾 / 大球 / 狙击），每格 120px
 void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_height)
 {
-    constexpr int BAR_Y = WINDOW_HEIGHT - 20;
-    constexpr int BAR_W = 600;
-    constexpr int BAR_H = 20;
+    constexpr int BAR_Y = static_cast<int>(MECH_BOTTOM_BAR_Y);
+    constexpr int BAR_W = static_cast<int>(MECH_WIDTH);
+    constexpr int BAR_H = static_cast<int>(MECH_BOTTOM_BAR_H);
     const SDL_FColor border = SDL_FColor{0.5f, 0.5f, 0.5f, 1.0f};
     const SDL_FColor sep = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
     const SDL_FColor label = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};  // 武器名用浅色（同原来）
     FillRect(canvas, canvas_width, canvas_height, 0, BAR_Y, BAR_W, BAR_H, border);
 
-    static const int EDGES[] = {0, 120, 240, 360, 480, 600};
-    static const int SEPS[] = {120, 240, 360, 480};
-    // 武器名（位图字体中文）：霰弹 / 机枪 / 护盾 / 大球 / 狙击
-    static const char *const LABELS[] = {
+    constexpr int SLOT_W = static_cast<int>(WEAPON_SLOT_WIDTH);
+    constexpr int COUNT = WEAPON_SLOT_COUNT;
+    static_assert(SLOT_W * COUNT == BAR_W, "武器格宽度 × 格数必须正好铺满底栏");
+    // 武器名（位图字体中文）：霰弹 / 机枪 / 护盾 / 大球 / 狙击（顺序 = 格序 = 物理索引）
+    static const char *const LABELS[COUNT] = {
         "霰弹", "机枪", "护盾", "大球", "狙击",
     };
-    constexpr int COUNT = 5;
-    for (int i = 0; i < COUNT - 1; ++i) {
-        FillRect(canvas, canvas_width, canvas_height, SEPS[i] - 1, BAR_Y, 2, BAR_H, sep);
+    for (int i = 1; i < COUNT; ++i) {  // 每格右边界画分隔线，最后一格右边不画
+        FillRect(canvas, canvas_width, canvas_height, i * SLOT_W - 1, BAR_Y, 2, BAR_H, sep);
     }
     for (int i = 0; i < COUNT; ++i) {
-        const int zone_w = EDGES[i + 1] - EDGES[i];
         const int text_width = MeasureTextFont(LABELS[i]);
-        const int text_x = EDGES[i] + (zone_w - text_width) / 2;
+        const int text_x = i * SLOT_W + (SLOT_W - text_width) / 2;
         const int text_y = BAR_Y + (BAR_H - FontLineHeight()) / 2;
         DrawTextFont(canvas, canvas_width, canvas_height, text_x, text_y, LABELS[i], label);
     }
@@ -75,7 +76,7 @@ void FillLeftBackground(std::vector<Uint8> &canvas)
         return;
     }
 
-    constexpr int LEFT_WIDTH = 600;  // 左侧机械区宽度（含边框）
+    constexpr int LEFT_WIDTH = static_cast<int>(MECH_WIDTH);  // 左侧机械区宽度（含边框）
     constexpr int TILE_SCALE = 3;    // 纹理放大倍数（每纹理像素占 3×3 屏幕像素）
     const Uint8 *src = static_cast<const Uint8 *>(rgba->pixels);
     const int pitch = static_cast<int>(rgba->pitch);
@@ -117,8 +118,8 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
 
     // 左边边框：贴着左/上/右边缘，宽度 20 像素，不画底边
     const SDL_FColor left_border_color = SDL_FColor{0.5f, 0.5f, 0.5f, 1.0f};
-    constexpr int LEFT_BORDER_WIDTH = 20;
-    constexpr int LEFT_AREA_WIDTH = 600;
+    constexpr int LEFT_BORDER_WIDTH = static_cast<int>(MECH_BORDER);
+    constexpr int LEFT_AREA_WIDTH = static_cast<int>(MECH_WIDTH);
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
              0, 0, LEFT_BORDER_WIDTH, WINDOW_HEIGHT, left_border_color);
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
@@ -127,7 +128,7 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
              0, 0, LEFT_AREA_WIDTH, LEFT_BORDER_WIDTH, left_border_color);
 
-    // y=400 的横线，宽度 20，中间留缺口（几何与水面等显示元素共用，见 scene.h）
+    // y=400 的横线，宽度 20，中间留缺口（几何见 scene.h，物理碰撞共用同一组常量）
     constexpr int WALL_Y = static_cast<int>(LIFT_WALL_Y);
     constexpr int WALL_HALF = static_cast<int>(LIFT_WALL_HALF);
     constexpr int GAP_CENTER_X = static_cast<int>(LIFT_GAP_CENTER_X);
@@ -140,33 +141,26 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
              LEFT_AREA_WIDTH - (GAP_CENTER_X + GAP_HALF), LEFT_BORDER_WIDTH,
              left_border_color);
 
-    // 横线上的图案：左右各三段 ×8 | ×4 | ×2，中间保留缺口
-    constexpr int SEPARATOR_X[] = {75, 150, 225, 375, 450, 525};
-    constexpr int ZONE_WIDTH = 75;       // 每个倍率分区的宽度（文字在其中居中）
+    // 横线上的图案：左右各三段 ×8 | ×4 | ×2，中间保留缺口（分区表见 scene.h）
+    constexpr int ZONE_WIDTH = static_cast<int>(BAND_ZONE_WIDTH);
     const SDL_FColor separator_color = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
     const SDL_FColor label_color = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};
     const int LABEL_Y = WALL_Y - FontLineHeight() / 2;  // 行高 18 居中于 20px 带
 
-    for (int separator_x : SEPARATOR_X) {
+    for (float separator_x : BAND_SEPARATOR_X) {
         FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                 separator_x - 1, WALL_Y - WALL_HALF, 2, LEFT_BORDER_WIDTH,
+                 static_cast<int>(separator_x) - 1, WALL_Y - WALL_HALF, 2, LEFT_BORDER_WIDTH,
                  separator_color);
     }
 
-    struct BandLabel
-    {
-        int zone_x;        // 分区左边界
-        const char *text;  // ×8 / ×4 / ×2
-    };
-    const BandLabel band_labels[] = {
-        {0, "×8"}, {75, "×4"}, {150, "×2"},
-        {375, "×2"}, {450, "×4"}, {525, "×8"},
-    };
-    for (const BandLabel &band : band_labels) {
-        const int text_width = MeasureTextFont(band.text);
+    // 标签文字直接由分区表生成：×8/×4/×2 永远和物理倍率一致
+    for (const BandZone &zone : BAND_ZONES) {
+        char text[16];
+        std::snprintf(text, sizeof(text), "×%.0f", static_cast<double>(zone.multiplier));
+        const int text_width = MeasureTextFont(text);
         DrawTextFont(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                     band.zone_x + (ZONE_WIDTH - text_width) / 2, LABEL_Y,
-                     band.text, label_color);
+                     static_cast<int>(zone.x) + (ZONE_WIDTH - text_width) / 2, LABEL_Y,
+                     text, label_color);
     }
 
     // 底部武器栏（5 格：SHOTGUN / MACHINEGUN / SHIELD / BIGBALL / SNIPER）
@@ -178,16 +172,21 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
         PaintCircle(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
                     circle.x, circle.y, circle.radius, left_border_color);
     }
-    // *8|*4 和 *4|*2 边界挡板
-    constexpr int BARRIER_X[] = {75, 150, 450, 525};
-    for (int barrier_x : BARRIER_X) {
+    // 倍率分区之间的竖向挡板（位置/尺寸见 scene.h 的 BAFFLE_*）
+    for (float baffle_x : BAFFLE_X) {
         FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                 barrier_x - 5, 310, 10, 100, left_border_color);
+                 static_cast<int>(baffle_x), static_cast<int>(BAFFLE_TOP_Y),
+                 static_cast<int>(BAFFLE_WIDTH), static_cast<int>(BAFFLE_HEIGHT),
+                 left_border_color);
     }
+    // 带下方的横挡板：左右各一块，中间留出缺口（水池就落在缺口里）
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-             0, 410, 225, 20, left_border_color);
+             0, static_cast<int>(LOWER_BAFFLE_Y), static_cast<int>(BAND_LEFT_EDGE),
+             static_cast<int>(LOWER_BAFFLE_HEIGHT), left_border_color);
     FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-             375, 410, 225, 20, left_border_color);
+             static_cast<int>(BAND_RIGHT_EDGE), static_cast<int>(LOWER_BAFFLE_Y),
+             static_cast<int>(MECH_WIDTH - BAND_RIGHT_EDGE),
+             static_cast<int>(LOWER_BAFFLE_HEIGHT), left_border_color);
 
     // 四角默认领土：以基地中心为圆心、半径 BASE_TERRITORY_RADIUS 的实心圆
     //（圆心与护盾圈/炮塔/基地占领判定完全一致，只是形状由方块改为圆）
@@ -234,7 +233,7 @@ void GetBlockingCircles(std::vector<StaticCircle> &circles)
 
     // ---------- 乘法带以上：3 排，在腔体内居中平摊 ----------
     constexpr float UPPER_TOP = 20.0f;      // 顶部边框下沿
-    constexpr float UPPER_BOTTOM = 390.0f;  // 乘法带上沿
+    constexpr float UPPER_BOTTOM = BAND_TOP_Y;  // 乘法带上沿
     constexpr int UPPER_ROWS = 3;
     const float upper_span = DOT_ROW_SPACING * static_cast<float>(UPPER_ROWS - 1);
     const float upper_first =
@@ -248,7 +247,7 @@ void GetBlockingCircles(std::vector<StaticCircle> &circles)
     }
 
     // ---------- 乘法带以下：4 排，从带下 200px 起，排间距与上方一致 ----------
-    constexpr float BAND_BOTTOM = 430.0f;     // 乘法带下沿
+    constexpr float BAND_BOTTOM = LIFT_WATER_BOTTOM_Y;  // 乘法带下方横挡板下沿
     constexpr float GAP_BELOW_BAND = 200.0f;  // 第一排与乘法带的距离
     constexpr float FIELD_TOP = BAND_BOTTOM + GAP_BELOW_BAND;
     constexpr int LOWER_ROWS = 4;  // 原本 6 排，去掉最下面两排

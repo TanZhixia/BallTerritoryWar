@@ -75,10 +75,11 @@ inline float SampleSnapshot(const std::vector<Uint8> &buffer, int width, int hei
 void DrawLiftWater(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                    uint64_t frame_count)
 {
-    const int left = static_cast<int>(LIFT_GAP_CENTER_X - LIFT_GAP_HALF);
-    const int right = static_cast<int>(LIFT_GAP_CENTER_X + LIFT_GAP_HALF);
-    const int top = static_cast<int>(LIFT_WALL_Y - LIFT_WALL_HALF);
-    // 水一直铺到下方挡板（y=410~430）的高度为止，缺口下方那一柱就是水池
+    // 水池范围取自 scene.h 的布局常量（与挡板绘制、物理浮力判定同源）
+    const int left = static_cast<int>(BAND_LEFT_EDGE);
+    const int right = static_cast<int>(BAND_RIGHT_EDGE);
+    const int top = static_cast<int>(BAND_TOP_Y);
+    // 水一直铺到下方挡板（y=410~430）的下沿为止，缺口下方那一柱就是水池
     const int bottom = std::min(static_cast<int>(LIFT_WATER_BOTTOM_Y), canvas_height);
     if (right <= left || bottom <= top) {
         return;

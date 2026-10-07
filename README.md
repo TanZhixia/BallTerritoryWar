@@ -12,6 +12,9 @@
 
 ---
 
+> **给 AI 协作者**：接手前请先读 [`CLAUDE.md`](CLAUDE.md)——里面是布局几何的唯一真相、
+> 不可破坏的不变量、提交/配置/字体约定，以及一套不开窗口就能验证的离线手法。
+
 ## 目录结构
 
 ```
@@ -31,7 +34,7 @@
 │   │   ├── state.h         # GameState（实体 + 队伍状态 + 计时）
 │   │   └── telemetry.{h,cpp}  # Unix socket 遥测服务线程
 │   ├── game/               # 玩法
-│   │   ├── scene.{h,cpp}   # 静态场景、基地/阻挡圆布局几何
+│   │   ├── scene.{h,cpp}   # 静态场景、基地/阻挡圆 + **机械区布局几何（唯一真相，绘制/碰撞/水面共用）**
 │   │   ├── physics.{h,cpp} # 机械区循环、武器触发、机枪 AI、引力与碰撞结算
 │   │   └── simulation.{h,cpp}  # InitializeGame / StepGame（一帧模拟）
 │   ├── render/             # 显示层

@@ -69,6 +69,16 @@ static bool CircleRectCollision(const PhysicsBall &ball, const PhysicsRect &rect
 // Find*ColorIndex（配色反查）已移至 core/palette.cpp；
 // CanvasPixelMatches（画布像素查询）已移至 render/canvas.cpp
 
+namespace {
+// 第 slot 个武器格的碰撞矩形（0 霰弹 / 1 机枪 / 2 护盾 / 3 大球 / 4 狙击）。
+// 格位几何取自 scene.h，与底部栏绘制同源。
+PhysicsRect WeaponSlotRect(int slot)
+{
+    return {static_cast<float>(slot) * WEAPON_SLOT_WIDTH, MECH_BOTTOM_BAR_Y,
+            WEAPON_SLOT_WIDTH, MECH_BOTTOM_BAR_H, 0.0f};
+}
+}  // namespace
+
 void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                                std::vector<BallObject> &paint_balls,
                                const SDL_FColor *pure_colors,
@@ -82,31 +92,30 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                                bool high_value_lift_enabled,
                                std::vector<Shockwave> &waves)
 {
+    // 机械区的碰撞矩形全部由 scene.h 的布局常量派生，与绘制共用同一组数字；
+    // 改挡板/倍率带/武器格只需改 scene.h，不会出现"画面改了碰撞没改"的错位。
     const PhysicsRect bounce_rects[] = {
-        {0.0f, 0.0f, 20.0f, 1000.0f, 0.0f},     // 左边框
-        {580.0f, 0.0f, 20.0f, 1000.0f, 0.0f},   // 右边框
-        {0.0f, 0.0f, 600.0f, 20.0f, 0.0f},      // 上边框
-        {0.0f, 980.0f, 600.0f, 20.0f, 0.0f},    // 底部条（兜底反弹）
-        {0.0f, 390.0f, 225.0f, 20.0f, 0.0f},    // 左武器区（兜底反弹）
-        {375.0f, 390.0f, 225.0f, 20.0f, 0.0f},  // 右武器区（兜底反弹）
-        {70.0f, 310.0f, 10.0f, 100.0f, 0.0f},   // *8|*4 挡板（左，底边贴 *x）
-        {145.0f, 310.0f, 10.0f, 100.0f, 0.0f},  // *4|*2 挡板（左，底边贴 *x）
-        {445.0f, 310.0f, 10.0f, 100.0f, 0.0f},  // *2|*4 挡板（右，底边贴 *x）
-        {520.0f, 310.0f, 10.0f, 100.0f, 0.0f},  // *4|*8 挡板（右，底边贴 *x）
-        {0.0f, 410.0f, 225.0f, 20.0f, 0.0f},    // *x 下方横挡板（左，紧贴）
-        {375.0f, 410.0f, 225.0f, 20.0f, 0.0f},  // *x 下方横挡板（右，紧贴）
+        {0.0f, 0.0f, MECH_BORDER, 1000.0f, 0.0f},                             // 左边框
+        {MECH_WIDTH - MECH_BORDER, 0.0f, MECH_BORDER, 1000.0f, 0.0f},         // 右边框
+        {0.0f, 0.0f, MECH_WIDTH, MECH_BORDER, 0.0f},                          // 上边框
+        {0.0f, MECH_BOTTOM_BAR_Y, MECH_WIDTH, MECH_BOTTOM_BAR_H, 0.0f},       // 底部条（兜底反弹）
+        {0.0f, BAND_TOP_Y, BAND_LEFT_EDGE, BAND_HEIGHT, 0.0f},                // 左武器区（兜底反弹）
+        {BAND_RIGHT_EDGE, BAND_TOP_Y, MECH_WIDTH - BAND_RIGHT_EDGE, BAND_HEIGHT, 0.0f},   // 右武器区
+        {BAFFLE_X[0], BAFFLE_TOP_Y, BAFFLE_WIDTH, BAFFLE_HEIGHT, 0.0f},       // *8|*4 挡板（左）
+        {BAFFLE_X[1], BAFFLE_TOP_Y, BAFFLE_WIDTH, BAFFLE_HEIGHT, 0.0f},       // *4|*2 挡板（左）
+        {BAFFLE_X[2], BAFFLE_TOP_Y, BAFFLE_WIDTH, BAFFLE_HEIGHT, 0.0f},       // *2|*4 挡板（右）
+        {BAFFLE_X[3], BAFFLE_TOP_Y, BAFFLE_WIDTH, BAFFLE_HEIGHT, 0.0f},       // *4|*8 挡板（右）
+        {0.0f, LOWER_BAFFLE_Y, BAND_LEFT_EDGE, LOWER_BAFFLE_HEIGHT, 0.0f},    // *x 下方横挡板（左）
+        {BAND_RIGHT_EDGE, LOWER_BAFFLE_Y, MECH_WIDTH - BAND_RIGHT_EDGE,
+         LOWER_BAFFLE_HEIGHT, 0.0f},                                          // *x 下方横挡板（右）
     };
-    // 乘法带（*8/*4/*2）的上沿：升力区不得越过它，否则会把带下方的球顶回带上
-    constexpr float BAND_TOP_Y = 390.0f;
 
-    const PhysicsRect special_rects[] = {
-        {0.0f, 390.0f, 75.0f, 20.0f, 8.0f},     // *8
-        {75.0f, 390.0f, 75.0f, 20.0f, 4.0f},    // *4
-        {150.0f, 390.0f, 75.0f, 20.0f, 2.0f},   // *2
-        {375.0f, 390.0f, 75.0f, 20.0f, 2.0f},   // *2
-        {450.0f, 390.0f, 75.0f, 20.0f, 4.0f},   // *4
-        {525.0f, 390.0f, 75.0f, 20.0f, 8.0f},   // *8
-    };
+    // 倍率带分区（*8/*4/*2）：由 BAND_ZONES 生成，倍率与画面标签同源
+    PhysicsRect special_rects[BAND_ZONE_COUNT];
+    for (int i = 0; i < BAND_ZONE_COUNT; ++i) {
+        special_rects[i] = {BAND_ZONES[i].x, BAND_TOP_Y, BAND_ZONE_WIDTH, BAND_HEIGHT,
+                            BAND_ZONES[i].multiplier};
+    }
 
     for (PhysicsBall &ball : balls) {
         ball.vy += g_config.physics.gravity * dt;
@@ -128,31 +137,30 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         // *8/*4/*2 上方升力：高于对应阈值的球生效（启动器可关闭）。
         // 只作用于乘法带以上（y ≤ 带顶 390）：已经落到带以下的球不再被顶回带上，
         // 否则会被抬回去重复吃倍率、来回上下弹。
-        if (g_weapon_lift_enabled && ball.y >= 300.0f && ball.y <= BAND_TOP_Y) {
-            const bool in_8x =
-                (ball.x >= 0.0f && ball.x < 75.0f) ||
-                (ball.x >= 525.0f && ball.x < 600.0f);
-            const bool in_4x =
-                (ball.x >= 75.0f && ball.x < 150.0f) ||
-                (ball.x >= 450.0f && ball.x < 525.0f);
-            const bool in_2x =
-                (ball.x >= 150.0f && ball.x < 225.0f) ||
-                (ball.x >= 375.0f && ball.x < 450.0f);
-            if (in_8x && ball.value >= weapon_lift_thresholds[0]) {
-                ball.vy -= g_config.lift.acceleration * dt;
-            } else if (in_4x && ball.value >= weapon_lift_thresholds[1]) {
-                ball.vy -= g_config.lift.acceleration * dt;
-            } else if (in_2x && ball.value >= weapon_lift_thresholds[2]) {
-                ball.vy -= g_config.lift.acceleration * dt;
+        if (g_weapon_lift_enabled && ball.y >= BAND_LIFT_TOP_Y && ball.y <= BAND_TOP_Y) {
+            for (const BandZone &zone : BAND_ZONES) {
+                if (ball.x < zone.x || ball.x >= zone.x + BAND_ZONE_WIDTH) {
+                    continue;  // 不在这个分区列里
+                }
+                // 同一倍率的左右两列共用同一个阈值：×8 → [0]，×4 → [1]，×2 → [2]
+                const int threshold_index = zone.multiplier >= 8.0f   ? 0
+                                          : zone.multiplier >= 4.0f   ? 1
+                                                                      : 2;
+                if (ball.value >= weapon_lift_thresholds[threshold_index]) {
+                    ball.vy -= g_config.lift.acceleration * dt;
+                }
+                break;  // 分区互不重叠，命中一个即可
             }
         }
         // 前期限制：10 分钟内 value > 2M 的球在霰弹/狙击列会被升力顶回去
         // （启动器可关闭：勾选后霰弹/狙击列的升力消失，中间升力不变）
         if (g_weapon_lift_enabled && high_value_lift_enabled &&
             ball.value > g_config.lift.highValueLimit &&
-            ball.y >= 700.0f && ball.y <= 980.0f) {
-            const bool in_shotgun = ball.x >= 0.0f && ball.x < 120.0f;
-            const bool in_sniper = ball.x >= 480.0f && ball.x < 600.0f;
+            ball.y >= 700.0f && ball.y <= MECH_BOTTOM_BAR_Y) {
+            const bool in_shotgun = ball.x >= 0.0f && ball.x < WEAPON_SLOT_WIDTH;
+            const bool in_sniper = ball.x >= static_cast<float>(WEAPON_SLOT_COUNT - 1) *
+                                                   WEAPON_SLOT_WIDTH &&
+                                   ball.x < MECH_WIDTH;
             if (in_shotgun || in_sniper) {
                 ball.vy -= g_config.lift.acceleration * dt;
             }
@@ -187,7 +195,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         // 底部武器格（与画布视觉一致，共 600px，5 格各 120px）：
         //   0-120 霰弹 / 120-240 机枪 / 240-360 护盾 / 360-480 大球 / 480-600 狙击
         // 霰弹：底部第一格，把 value 分成最多 1000 份发射（每份 = value/份数）
-        const PhysicsRect shotgun_rect = {0.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+        const PhysicsRect shotgun_rect = WeaponSlotRect(0);  // 霰弹
         float shotgun_nx = 0.0f, shotgun_ny = 0.0f, shotgun_pen = 0.0f;
         if (CircleRectCollision(ball, shotgun_rect, shotgun_nx, shotgun_ny, shotgun_pen)) {
             const int color_index = FindPhysicsColorIndex(ball, pure_colors);
@@ -228,7 +236,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         }
 
         // 机枪：底部第二格（120-240），把 value 加入对应颜色的变量
-        const PhysicsRect machine_gun_rect = {120.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+        const PhysicsRect machine_gun_rect = WeaponSlotRect(1);  // 机枪
         float mg_nx = 0.0f, mg_ny = 0.0f, mg_pen = 0.0f;
         if (CircleRectCollision(ball, machine_gun_rect, mg_nx, mg_ny, mg_pen)) {
             const int color_index = FindPhysicsColorIndex(ball, pure_colors);
@@ -245,7 +253,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         }
 
         // 护盾：底部第三格，把 value 加入对应颜色的护盾
-        const PhysicsRect shield_rect = {240.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+        const PhysicsRect shield_rect = WeaponSlotRect(2);  // 护盾
         float shield_nx = 0.0f, shield_ny = 0.0f, shield_pen = 0.0f;
         if (CircleRectCollision(ball, shield_rect, shield_nx, shield_ny, shield_pen)) {
             const int color_index = FindPhysicsColorIndex(ball, pure_colors);
@@ -262,7 +270,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         }
 
         // 大球：底部第四格，生成一个大球
-        const PhysicsRect big_ball_rect = {360.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+        const PhysicsRect big_ball_rect = WeaponSlotRect(3);  // 大球
         float big_nx = 0.0f, big_ny = 0.0f, big_pen = 0.0f;
         if (CircleRectCollision(ball, big_ball_rect, big_nx, big_ny, big_pen)) {
             const int color_index = FindPhysicsColorIndex(ball, pure_colors);
@@ -293,7 +301,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
         }
 
         // 狙击：底部第五格（x 480~600，120px），发射一个继承全部 value 的粒子
-        const PhysicsRect sniper_rect = {480.0f, 980.0f, 120.0f, 20.0f, 0.0f};
+        const PhysicsRect sniper_rect = WeaponSlotRect(4);  // 狙击
         float sniper_nx = 0.0f, sniper_ny = 0.0f, sniper_pen = 0.0f;
         if (CircleRectCollision(ball, sniper_rect, sniper_nx, sniper_ny, sniper_pen)) {
             const int color_index = FindPhysicsColorIndex(ball, pure_colors);
