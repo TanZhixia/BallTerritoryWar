@@ -102,16 +102,9 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
     // 领土新增闪光：翻色像素被点亮，逐帧衰减淡出（仅显示层）
     UpdateAndDrawTerritoryFlash(display_canvas, state.territory_flash);
 
-    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药 + 复活中提示）。
-    // 复活提示覆盖整个复活流程（等待期 + 飞行期），与遥测/启动器同一个判定口径，
-    // 否则基地刚失守的 60 秒等待期内 HUD 会误显示成“已灭”
-    bool hud_reviving[4] = {false, false, false, false};
-    for (int color = 0; color < 4; ++color) {
-        hud_reviving[color] = IsRevivalPending(state, color);
-    }
+    // 现代化 HUD：顶部半透明面板（领土进度条 + 护盾/弹药）
     DrawHUD(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT, state.hud_territory,
-            state.shield_remaining, state.machine_gun_ammo, state.color_alive,
-            hud_reviving);
+            state.shield_remaining, state.machine_gun_ammo, state.color_alive);
 
     // 大球显示 value（黑字）
     const SDL_FColor big_text_color = SDL_FColor{0.0f, 0.0f, 0.0f, 1.0f};
@@ -198,7 +191,4 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
                      ammo_text, ammo_text_color);
     }
 
-    // 复活飞行中的物理球画在所有 UI 之上：它要横穿战场飞到炮塔，动画必须醒目
-    DrawRevivingPhysicsBalls(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                             state.physics_balls);
 }

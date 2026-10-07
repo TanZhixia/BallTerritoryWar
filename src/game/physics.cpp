@@ -80,8 +80,7 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                                const float weapon_lift_thresholds[3],
                                float shield_remaining[4],
                                bool high_value_lift_enabled,
-                               std::vector<Shockwave> &waves,
-                               const float revival_wait[4])
+                               std::vector<Shockwave> &waves)
 {
     const PhysicsRect bounce_rects[] = {
         {0.0f, 0.0f, 20.0f, 1000.0f, 0.0f},     // 左边框
@@ -110,11 +109,6 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
     };
 
     for (PhysicsBall &ball : balls) {
-        // 复活飞行中的球：不参与重力/升力/挡板/武器格/越界兜底，由
-        // UpdateRevivingBall 单独推进（它会飞出自己的机械区，去战场炮塔）
-        if (ball.reviving) {
-            continue;
-        }
         ball.vy += g_config.physics.gravity * dt;
         // 水中的浮力（缺口 → 下方挡板那一柱）：物理球的"质量"与 value 成正比，
         // 而浮力对所有球都相同，取「浮力加速度 = g × 阈值 / value」；阈值就是
@@ -189,32 +183,6 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
             continue;
         }
 
-        // 复活等待期（基地已失守、等着复活）：该颜色的物理球落入任意武器格都不发射武器，
-        // 而是把价值转化为该队护盾（为复活后的护盾圈攒量），球本身重置回顶部继续跑
-        if (revival_wait != nullptr &&
-            revival_wait[FindPhysicsColorIndex(ball, pure_colors)] > 0.0f) {
-            bool in_any_slot = false;
-            for (int slot = 0; slot < 5 && !in_any_slot; ++slot) {
-                const PhysicsRect slot_rect = {
-                    static_cast<float>(slot) * 120.0f, 980.0f, 120.0f, 20.0f, 0.0f};
-                float slot_nx = 0.0f, slot_ny = 0.0f, slot_pen = 0.0f;
-                in_any_slot = CircleRectCollision(ball, slot_rect, slot_nx, slot_ny, slot_pen);
-            }
-            if (in_any_slot) {
-                const int color_index = FindPhysicsColorIndex(ball, pure_colors);
-                SpawnShockwave(waves, ball.x, ball.y, 24.0f, 0.5f, 2.5f,
-                               SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f});
-                shield_remaining[color_index] +=
-                    ball.value * g_config.revive.shieldValueScale;
-                ball.value = 1.0f;  // 转化为护盾后恢复 1
-                ball.x = 300.0f;
-                ball.y = 100.0f;
-                const float angle = RandFloat() * 2.0f * static_cast<float>(M_PI);
-                ball.vx = std::cos(angle) * g_config.physics.launchSpeed;
-                ball.vy = std::sin(angle) * g_config.physics.launchSpeed;
-                continue;
-            }
-        }
 
         // 底部武器格（与画布视觉一致，共 600px，5 格各 120px）：
         //   0-120 霰弹 / 120-240 机枪 / 240-360 护盾 / 360-480 大球 / 480-600 狙击
@@ -642,40 +610,6 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
 
 }
 
-// 复活飞行推进：先原地停顿 stopSeconds（速度清零），再以固定速度飞向炮塔。
-// 返回 true 表示本帧已到达目标（调用方执行复活流程，并把该球移除）。
-bool UpdateRevivingBall(PhysicsBall &ball, float dt)
-{
-    if (!ball.reviving) {
-        return false;
-    }
-    if (ball.revive_stop > 0.0f) {
-        ball.revive_stop -= dt;
-        ball.vx = 0.0f;  // 动画第一阶段：原地停住不动
-        ball.vy = 0.0f;
-        if (ball.revive_stop > 0.0f) {
-            return false;
-        }
-    }
-    const float dx = ball.target_x - ball.x;
-    const float dy = ball.target_y - ball.y;
-    const float distance = std::sqrt(dx * dx + dy * dy);
-    const float speed = g_config.revive.flightSpeed;
-    const float step = speed * dt;
-    if (distance <= step || distance < 0.001f) {
-        ball.x = ball.target_x;
-        ball.y = ball.target_y;
-        ball.vx = 0.0f;
-        ball.vy = 0.0f;
-        return true;  // 到达炮塔
-    }
-    ball.vx = dx / distance * speed;
-    ball.vy = dy / distance * speed;
-    ball.x += ball.vx * dt;
-    ball.y += ball.vy * dt;
-    return false;
-}
-
 namespace {
 void DrawOnePhysicsBall(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                         const PhysicsBall &ball, const SDL_FColor &text_color)
@@ -695,21 +629,6 @@ void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_h
 {
     const SDL_FColor text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};
     for (const PhysicsBall &ball : balls) {
-        if (ball.reviving) {
-            continue;  // 复活飞行的球画在最上层（见 DrawRevivingPhysicsBalls）
-        }
-        DrawOnePhysicsBall(canvas, canvas_width, canvas_height, ball, text_color);
-    }
-}
-
-void DrawRevivingPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                              const std::vector<PhysicsBall> &balls)
-{
-    const SDL_FColor text_color = SDL_FColor{1.0f, 1.0f, 1.0f, 1.0f};
-    for (const PhysicsBall &ball : balls) {
-        if (!ball.reviving) {
-            continue;
-        }
         DrawOnePhysicsBall(canvas, canvas_width, canvas_height, ball, text_color);
     }
 }

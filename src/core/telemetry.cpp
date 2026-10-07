@@ -20,8 +20,7 @@
 //
 // 游戏在 /tmp/btw_telemetry.sock 上监听；启动器连上后，游戏以 20Hz 推送一行 JSON：
 // {"territory":[..4], "bigBalls":[..4], "totalBalls":N, "physicsValues":[..4],
-//  "physicsCount":N, "shields":[..4], "ammo":[..4], "alive":[..4], "reviving":[..4],
-//  "reviveIn":[..4]（复活等待剩余秒数）
+//  "physicsCount":N, "shields":[..4], "ammo":[..4], "alive":[..4]
 //  "elapsed":秒, "fps":N}
 // 没有客户端连接时，游戏不做任何统计（零开销）。
 
@@ -179,8 +178,6 @@ void CollectTelemetry(std::vector<BallObject> &balls,
                              const float shield_remaining[4],
                              const float machine_gun_ammo[4],
                              const bool color_alive[4],
-                             const bool color_reviving[4],
-                             const float revive_in[4],
                              float elapsed_minutes,
                              TelemetryState &telemetry)
 {
@@ -223,8 +220,6 @@ void CollectTelemetry(std::vector<BallObject> &balls,
         "\"totalBalls\":%zu,\"physicsValues\":[%.0f,%.0f,%.0f,%.0f],"
         "\"physicsCount\":%d,\"shields\":[%.0f,%.0f,%.0f,%.0f],"
         "\"ammo\":[%.0f,%.0f,%.0f,%.0f],\"alive\":[%s,%s,%s,%s],"
-        "\"reviving\":[%s,%s,%s,%s],"
-        "\"reviveIn\":[%.1f,%.1f,%.1f,%.1f],"
         "\"elapsed\":%.1f,\"fps\":%.1f}",
         territory[0], territory[1], territory[2], territory[3],
         big_balls[0], big_balls[1], big_balls[2], big_balls[3],
@@ -235,9 +230,6 @@ void CollectTelemetry(std::vector<BallObject> &balls,
         machine_gun_ammo[0], machine_gun_ammo[1], machine_gun_ammo[2], machine_gun_ammo[3],
         color_alive[0] ? "true" : "false", color_alive[1] ? "true" : "false",
         color_alive[2] ? "true" : "false", color_alive[3] ? "true" : "false",
-        color_reviving[0] ? "true" : "false", color_reviving[1] ? "true" : "false",
-        color_reviving[2] ? "true" : "false", color_reviving[3] ? "true" : "false",
-        revive_in[0], revive_in[1], revive_in[2], revive_in[3],
         elapsed_minutes * 60.0f, fps);
     std::lock_guard<std::mutex> lock(telemetry.mutex);
     telemetry.json = buf;

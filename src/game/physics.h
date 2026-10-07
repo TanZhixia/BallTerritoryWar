@@ -27,9 +27,7 @@ void ApplyBigBallGravity(std::vector<BallObject> &balls, const SDL_FColor *pure_
 extern int g_next_big_ball_id;
 extern bool g_weapon_lift_enabled;  // *8/*4/*2 及霰弹/狙击列升力开关（--no-weapon-lift 关闭，中间升力保留）
 
-// 推进左侧机械区一帧：升力/重力/挡板/倍率带/五种武器格/机枪发射
-// revival_wait：各颜色复活等待倒计时（秒）。>0 的颜色处于"死亡等待复活"状态，
-// 其物理球落入任意武器格都不发射武器，而是把价值转化为该队护盾（可传 nullptr）
+// 推进左侧机械区一帧：水中浮力/重力/挡板/倍率带/五种武器格/机枪发射
 void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                         std::vector<BallObject> &paint_balls,
                         const SDL_FColor *pure_colors,
@@ -41,21 +39,11 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
                         const float weapon_lift_thresholds[3],
                         float shield_remaining[4],
                         bool high_value_lift_enabled,
-                        std::vector<Shockwave> &waves,
-                        const float revival_wait[4] = nullptr);
+                        std::vector<Shockwave> &waves);
 
-// 推进"复活飞行"：先原地停顿 stopSeconds，再以 revive.flightSpeed 飞向炮塔；
-// 返回 true 表示本帧到达炮塔（调用方据此执行复活流程）
-bool UpdateRevivingBall(PhysicsBall &ball, float dt);
-
-// 在显示画布上画物理球（圆 + 价值文字）；复活飞行中的球跳过（由
-// DrawRevivingPhysicsBalls 画在最上层，飞行过程更醒目）
+// 在显示画布上画物理球（圆 + 价值文字）
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                      const std::vector<PhysicsBall> &balls);
-// 只画"复活飞行中"的物理球（画在显示层最上方）
-void DrawRevivingPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                              const std::vector<PhysicsBall> &balls);
-// 战场实体的碰撞与伤害结算（护盾吸收 / 大球-大球 / 大球-小球 / 小-小空间网格）
+                      const std::vector<PhysicsBall> &balls);// 战场实体的碰撞与伤害结算（护盾吸收 / 大球-大球 / 大球-小球 / 小-小空间网格）
 void ResolvePaintBallCollisions(std::vector<BallObject> &balls,
                                 float shield_remaining[4],
                                 const SDL_FColor *pure_colors);

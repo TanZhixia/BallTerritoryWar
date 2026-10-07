@@ -1,6 +1,6 @@
 // ==================== HUD 面板（右侧悬浮状态板） ====================
 // 战场右上角的半透明圆角面板：四队状态 —— 色点 + 队名 + 领土占比 + 护盾/弹药，
-// 基地失守进入复活流程时第一行显示「复活中」，彻底出局显示「已灭」。
+// 基地被占领（color_alive=false）后第一行显示「已灭」。
 // 只画在显示画布上，不参与领土判定；面板避开四角基地（右边缘 1400 < 右上基地 1500-100）。
 // 文案走位图字体（render/font_atlas.h，16px 中文），数字由 FormatValue 生成。
 
@@ -33,8 +33,7 @@ const char *const kTeamNames[4] = {"红队", "绿队", "蓝队", "黄队"};
 
 void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
              const float territory[4], const float shield_remaining[4],
-             const float machine_gun_ammo[4], const bool color_alive[4],
-             const bool color_reviving[4])
+             const float machine_gun_ammo[4], const bool color_alive[4])
 {
     // 面板底 + 细边框
     const SDL_FColor panel_bg = {0.04f, 0.055f, 0.11f, 1.0f};
@@ -59,34 +58,30 @@ void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
             color == 2 ? NEW_FRAME_PALETTE.bottom_left :
                          NEW_FRAME_PALETTE.bottom_right);
         const bool alive = color_alive[color];
-        const bool reviving = !alive && color_reviving[color];  // 复活流程中（等待期或飞行）
-        const bool active = alive || reviving;                  // 还在局内（护盾/弹药仍显示）
 
-        // 色点：存活/复活中用队伍色，已出局用灰色
+        // 色点：存活用队伍色，已出局用灰色
         PaintCircle(canvas, canvas_width, canvas_height, x + 4, ROW_NAME_Y + 8, 3.5f,
-                    active ? team : gray);
+                    alive ? team : gray);
 
-        // 第一行：队名 + 领土占比 / 复活中 / 已灭
+        // 第一行：队名 + 领土占比 / 已灭
         char line[64];
         if (alive) {
             std::snprintf(line, sizeof(line), "%s %.1f%%", kTeamNames[color],
                           territory[color] * 100.0f);
-        } else if (reviving) {
-            std::snprintf(line, sizeof(line), "%s 复活中", kTeamNames[color]);
         } else {
             std::snprintf(line, sizeof(line), "%s 已灭", kTeamNames[color]);
         }
         DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_NAME_Y, line,
-                     active ? white : dim);
+                     alive ? white : dim);
 
-        // 第二行：护盾（复活等待期武器格攒的护盾在这里能看到涨）
+        // 第二行：护盾
         std::snprintf(line, sizeof(line), "护盾 %s",
-                      active ? FormatValue(shield_remaining[color]).c_str() : "--");
+                      alive ? FormatValue(shield_remaining[color]).c_str() : "--");
         DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_SHIELD_Y, line, dim);
 
         // 第三行：弹药
         std::snprintf(line, sizeof(line), "弹药 %s",
-                      active ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
+                      alive ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
         DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_AMMO_Y, line, dim);
     }
 }

@@ -111,19 +111,6 @@ struct StartupConfig
     float openingShotgunValue = 2500000.0f;  // 开局每队向中心发射的霰弹总价值
 };
 
-// ==================== 复活 ====================
-// 基地被占领（颜色死亡）后，若该颜色仍有足够多的物理球，则保留物理球，
-// 让其中价值最大的一个停止移动 → 飞向该颜色的炮塔 → 到达后复活：
-// 颜色重新存活、该物理球的价值转化为护盾、护盾圈内的像素全部刷回该队颜色。
-struct ReviveConfig
-{
-    int minPhysicsBalls = 2;        // 至少要有这么多物理球才触发复活（只剩 1 个不复活）
-    float delaySeconds = 60.0f;     // 死亡后等多少秒才复活（等待期内武器格转护盾；0 = 立即复活）
-    float stopSeconds = 0.5f;       // 最大物理球"停止移动"的停顿时间（秒）
-    float flightSpeed = 400.0f;     // 飞向炮塔的速度（像素/秒）
-    float shieldValueScale = 1.0f;  // 物理球价值 → 护盾值的倍率
-};
-
 struct GameConfig
 {
     PaintBallsConfig paintBalls;
@@ -137,7 +124,6 @@ struct GameConfig
     CombatConfig combat;
     GameOverConfig gameOver;
     StartupConfig startup;
-    ReviveConfig revive;
 };
 
 extern GameConfig g_config;  // 启动时由 LoadConfig() 填充

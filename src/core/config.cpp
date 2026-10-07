@@ -348,7 +348,7 @@ void YamlNumArray(const YamlNode &group, const char *key, float *target, int cou
 }
 
 // 这些配置项在算式里充当除数或步长，取 0（或负数）会导致：
-// 浮点 inf 再转 int（C++ 未定义行为）、机枪拦截模拟的死循环、复活球永远飞不到炮塔。
+// 浮点 inf 再转 int（C++ 未定义行为）、机枪拦截模拟的死循环。
 // YAML 手改与遥测 SETCONFIG 都不经过启动器的范围校验，因此在加载与热更新后统一夹到
 // 安全下限（正常取值不受影响，只有非法值才会被顶到这里）。
 void SanitizeDivisors()
@@ -366,7 +366,6 @@ void SanitizeDivisors()
         {"machineGun.speed", &g_config.machineGun.speed, 1.0f},
         {"shotgun.fragmentValue", &g_config.shotgun.fragmentValue, 0.001f},
         {"sniper.explosionValue", &g_config.sniper.explosionValue, 0.001f},
-        {"revive.flightSpeed", &g_config.revive.flightSpeed, 1.0f},
     };
     for (const Guard &guard : guards) {
         if (*guard.value < guard.floor_value) {
@@ -464,13 +463,6 @@ gameOver:
 
 startup:
   openingShotgunValue: 2500000.0  # 开局每队向中心发射的霰弹总价值
-
-revive:
-  minPhysicsBalls: 2       # 至少这么多物理球才触发复活（只剩 1 个不复活；0 = 关闭复活）
-  delaySeconds: 60.0       # 死亡后等这么多秒才复活（等待期内武器格转护盾；0 = 立即复活）
-  stopSeconds: 0.5         # 最大的物理球停止移动的停顿时间（秒）
-  flightSpeed: 400.0       # 飞向炮塔的速度（像素/秒）
-  shieldValueScale: 1.0    # 物理球价值 → 护盾值的倍率
 )";
 }
 
@@ -639,15 +631,6 @@ bool LoadConfig()
     } else {
         warnings += "gameOver 组缺失；";
     }
-    if (const YamlNode *g = YamlFind(root, "revive")) {
-        YamlInt(*g, "minPhysicsBalls", g_config.revive.minPhysicsBalls, warnings);
-        YamlNum(*g, "delaySeconds", g_config.revive.delaySeconds, warnings);
-        YamlNum(*g, "stopSeconds", g_config.revive.stopSeconds, warnings);
-        YamlNum(*g, "flightSpeed", g_config.revive.flightSpeed, warnings);
-        YamlNum(*g, "shieldValueScale", g_config.revive.shieldValueScale, warnings);
-    } else {
-        warnings += "revive 组缺失；";
-    }
     if (const YamlNode *g = YamlFind(root, "startup")) {
         YamlNum(*g, "openingShotgunValue", g_config.startup.openingShotgunValue, warnings);
     } else {
@@ -779,12 +762,6 @@ bool ApplyConfigKey(const std::string &key, const std::vector<std::string> &valu
     else if (key == "combat.damageRatio") { if (get_num(0, f)) g_config.combat.damageRatio = f; else return false; }
     // gameOver
     else if (key == "gameOver.countdownFrames") { if (get_int(0, i)) g_config.gameOver.countdownFrames = i; else return false; }
-    // revive
-    else if (key == "revive.minPhysicsBalls") { if (get_int(0, i)) g_config.revive.minPhysicsBalls = i; else return false; }
-    else if (key == "revive.delaySeconds") { if (get_num(0, f)) g_config.revive.delaySeconds = f; else return false; }
-    else if (key == "revive.stopSeconds") { if (get_num(0, f)) g_config.revive.stopSeconds = f; else return false; }
-    else if (key == "revive.flightSpeed") { if (get_num(0, f)) g_config.revive.flightSpeed = f; else return false; }
-    else if (key == "revive.shieldValueScale") { if (get_num(0, f)) g_config.revive.shieldValueScale = f; else return false; }
     // startup
     else if (key == "startup.openingShotgunValue") { if (get_num(0, f)) g_config.startup.openingShotgunValue = f; else return false; }
     else {
