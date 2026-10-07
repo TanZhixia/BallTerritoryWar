@@ -445,7 +445,7 @@ bigBall:
   speedFactor: 0.5         # 大球速度 = 画笔球速度 × 此值
   trailValue: 20.0         # 拖尾小球价值（每帧扣大球此值）
   gravityRadius: 260.0     # 大球引力半径（像素，大球之间与吸引狙击碎片共用）
-  gravityStrength: 0.5     # 大球之间的引力常数（质量 = sqrt(value)，避免高价值大球失控）
+  gravityStrength: 0.5     # 大球之间的引力常数（质量 = value 线性，a = G × value / r²）
   gravityMaxSpeed: 480.0   # 被吸引球的速度上限
   fragmentGravityStrength: 0.5  # 狙击爆炸碎片被大球吸引的引力常数（a = G × 大球value / r²，0 = 关闭）
   splitIntervalSeconds: 60.0    # 大球每 N 秒分裂成两个 value/2 的大球（0 = 关闭）

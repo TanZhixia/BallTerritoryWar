@@ -43,7 +43,8 @@ void UpdatePhysicsBalls(std::vector<PhysicsBall> &balls, float dt,
 
 // 在显示画布上画物理球（圆 + 价值文字）
 void DrawPhysicsBalls(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
-                      const std::vector<PhysicsBall> &balls);// 战场实体的碰撞与伤害结算（护盾吸收 / 大球-大球 / 大球-小球 / 小-小空间网格）
+                      const std::vector<PhysicsBall> &balls);
+// 战场实体的碰撞与伤害结算（护盾吸收 / 大球-大球 / 大球-小球 / 小-小空间网格）
 void ResolvePaintBallCollisions(std::vector<BallObject> &balls,
                                 float shield_remaining[4],
                                 const SDL_FColor *pure_colors);
