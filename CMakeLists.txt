@@ -14,7 +14,7 @@ find_package(SDL3 REQUIRED)
 # 目录结构：
 #   src/core    配置 / 常量 / 配色 / 实体 / 状态 / 遥测
 #   src/game    场景、物理与战斗、一帧模拟
-#   src/render  像素画布、粒子特效、HUD、GPU
+#   src/render  像素画布、界面中文位图字形、粒子特效、HUD、GPU
 #   src/io      录像输出
 add_executable(main
     src/main.cpp
@@ -26,6 +26,7 @@ add_executable(main
     src/game/simulation.cpp
     src/io/output.cpp
     src/render/canvas.cpp
+    src/render/font_atlas.cpp
     src/render/gpu.cpp
     src/render/hud.cpp
     src/render/particles.cpp

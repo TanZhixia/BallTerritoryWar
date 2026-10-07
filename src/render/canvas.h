@@ -27,6 +27,13 @@ void FillRect(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
               int x, int y, int rect_width, int rect_height, const SDL_FColor &color);
 void DrawText(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
               int x, int y, const char *text, const SDL_FColor &color, int scale);
+// 位图字体（UTF-8，行高 FONT_LINE_HEIGHT，抗锯齿混合）：界面中文/状态文案专用。
+// 字形数据由 scripts/gen_font_atlas.py 从系统字体烘焙，见 render/font_atlas.h。
+// y 是行顶；返回绘制结束后的 x 坐标。
+int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                 int x, int y, const char *text, const SDL_FColor &color);
+// 位图字体的文本像素宽度（UTF-8），用于居中排版
+int MeasureTextFont(const char *utf8);
 void DrawHollowCircle(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
                       float cx, float cy, float radius,
                       const SDL_FColor &color, float thickness);

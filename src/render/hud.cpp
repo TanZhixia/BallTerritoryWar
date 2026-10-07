@@ -1,26 +1,33 @@
-// ==================== HUD 面板（像素字体风格） ====================
-// 顶部半透明圆角面板：四队状态（色点 + 领土百分比 + 护盾/弹药）。
-// 只画在显示画布上，不参与领土判定。面板置于战场区顶部居中，避开四角基地。
-// 注意：5×7 像素字体仅含 ASCII，故全部用字母/数字标识。
+// ==================== HUD 面板（右侧悬浮状态板） ====================
+// 战场右上角的半透明圆角面板：四队状态 —— 色点 + 队名 + 领土占比 + 护盾/弹药，
+// 基地失守进入复活流程时第一行显示「复活中」，彻底出局显示「已灭」。
+// 只画在显示画布上，不参与领土判定；面板避开四角基地（右边缘 1400 < 右上基地 1500-100）。
+// 文案走位图字体（render/font_atlas.h，16px 中文），数字由 FormatValue 生成。
 
 #include "render/hud.h"
 
 #include "core/math_utils.h"
 #include "core/palette.h"
 #include "render/canvas.h"
+#include "render/font_atlas.h"
 
 #include <cstdio>
 
 namespace {
 
-// 面板几何
+// 面板几何：4 队 × 125px 栏宽，3 行 × 18px 行高
 constexpr int PANEL_X = 860;
 constexpr int PANEL_Y = 10;
-constexpr int PANEL_W = 480;
-constexpr int PANEL_H = 58;
+constexpr int PANEL_W = 540;
+constexpr int PANEL_H = 62;
 constexpr float PANEL_RADIUS = 10.0f;
 constexpr int GAP_X = 10;
 constexpr int BLOCK_W = (PANEL_W - 2 * GAP_X - 3 * 6) / 4;  // 4 队
+constexpr int ROW_NAME_Y = PANEL_Y + 3;                      // 队名 + 领土占比
+constexpr int ROW_SHIELD_Y = ROW_NAME_Y + FONT_LINE_HEIGHT;  // 护盾
+constexpr int ROW_AMMO_Y = ROW_SHIELD_Y + FONT_LINE_HEIGHT;  // 弹药
+
+const char *const kTeamNames[4] = {"红队", "绿队", "蓝队", "黄队"};
 
 }  // namespace
 
@@ -52,35 +59,34 @@ void DrawHUD(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
             color == 2 ? NEW_FRAME_PALETTE.bottom_left :
                          NEW_FRAME_PALETTE.bottom_right);
         const bool alive = color_alive[color];
-        const bool reviving = !alive && color_reviving[color];  // 复活飞行中
+        const bool reviving = !alive && color_reviving[color];  // 复活流程中（等待期或飞行）
+        const bool active = alive || reviving;                  // 还在局内（护盾/弹药仍显示）
 
-        // 色点：存活用队伍色，复活中用队伍色（闪烁感由领土变化带来），已灭用灰色
-        PaintCircle(canvas, canvas_width, canvas_height, x + 4, PANEL_Y + 8, 3.5f,
-                    alive || reviving ? team : gray);
+        // 色点：存活/复活中用队伍色，已出局用灰色
+        PaintCircle(canvas, canvas_width, canvas_height, x + 4, ROW_NAME_Y + 8, 3.5f,
+                    active ? team : gray);
 
-        // 第一行（2 倍字）：领土百分比 / REVIVING / --
-        char line1[16];
+        // 第一行：队名 + 领土占比 / 复活中 / 已灭
+        char line[64];
         if (alive) {
-            std::snprintf(line1, sizeof(line1), "%.1f", territory[color] * 100.0f);
+            std::snprintf(line, sizeof(line), "%s %.1f%%", kTeamNames[color],
+                          territory[color] * 100.0f);
         } else if (reviving) {
-            std::snprintf(line1, sizeof(line1), "REVIVING");
+            std::snprintf(line, sizeof(line), "%s 复活中", kTeamNames[color]);
         } else {
-            std::snprintf(line1, sizeof(line1), "--");
+            std::snprintf(line, sizeof(line), "%s 已灭", kTeamNames[color]);
         }
-        DrawText(canvas, canvas_width, canvas_height,
-                 x + 12, PANEL_Y + 2, line1, (alive || reviving) ? white : dim, 2);
+        DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_NAME_Y, line,
+                     active ? white : dim);
 
-        // 第二行（2 倍字）：护盾（复活流程中照样显示——等待期武器格正在往这里攒护盾）
-        char line2[24];
-        std::snprintf(line2, sizeof(line2), "SH %s",
-                      (alive || reviving) ? FormatValue(shield_remaining[color]).c_str() : "--");
-        DrawText(canvas, canvas_width, canvas_height, x + 12, PANEL_Y + 20,
-                 line2, dim, 2);
+        // 第二行：护盾（复活等待期武器格攒的护盾在这里能看到涨）
+        std::snprintf(line, sizeof(line), "护盾 %s",
+                      active ? FormatValue(shield_remaining[color]).c_str() : "--");
+        DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_SHIELD_Y, line, dim);
 
-        // 第三行（2 倍字）：弹药
-        std::snprintf(line2, sizeof(line2), "AM %s",
-                      (alive || reviving) ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
-        DrawText(canvas, canvas_width, canvas_height, x + 12, PANEL_Y + 38,
-                 line2, dim, 2);
+        // 第三行：弹药
+        std::snprintf(line, sizeof(line), "弹药 %s",
+                      active ? FormatValue(machine_gun_ammo[color]).c_str() : "--");
+        DrawTextFont(canvas, canvas_width, canvas_height, x + 12, ROW_AMMO_Y, line, dim);
     }
 }

@@ -4,10 +4,9 @@
 #include "core/math_utils.h"
 #include "core/palette.h"
 #include "render/canvas.h"
+#include "render/font_atlas.h"
 
-#include <cstring>
-
-// 底部武器栏：5 格（SHOTGUN / MACHINEGUN / SHIELD / BIGBALL / SNIPER），每格 120px
+// 底部武器栏：5 格（霰弹 / 机枪 / 护盾 / 大球 / 狙击），每格 120px
 void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_height)
 {
     constexpr int BAR_Y = WINDOW_HEIGHT - 20;
@@ -15,13 +14,15 @@ void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
     constexpr int BAR_H = 20;
     const SDL_FColor border = SDL_FColor{0.5f, 0.5f, 0.5f, 1.0f};
     const SDL_FColor sep = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
-    const SDL_FColor label = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};
+    // 武器名用深色：灰色条底上深色中文比浅色更清楚（与分隔线同色系）
+    const SDL_FColor label = SDL_FColor{0.12f, 0.12f, 0.14f, 1.0f};
     FillRect(canvas, canvas_width, canvas_height, 0, BAR_Y, BAR_W, BAR_H, border);
 
     static const int EDGES[] = {0, 120, 240, 360, 480, 600};
     static const int SEPS[] = {120, 240, 360, 480};
+    // 武器名（位图字体中文）：霰弹 / 机枪 / 护盾 / 大球 / 狙击
     static const char *const LABELS[] = {
-        "SHOTGUN", "MACHINEGUN", "SHIELD", "BIGBALL", "SNIPER",
+        "霰弹", "机枪", "护盾", "大球", "狙击",
     };
     constexpr int COUNT = 5;
     for (int i = 0; i < COUNT - 1; ++i) {
@@ -29,10 +30,10 @@ void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
     }
     for (int i = 0; i < COUNT; ++i) {
         const int zone_w = EDGES[i + 1] - EDGES[i];
-        const int text_width = static_cast<int>(std::strlen(LABELS[i])) * 6;
+        const int text_width = MeasureTextFont(LABELS[i]);
         const int text_x = EDGES[i] + (zone_w - text_width) / 2;
-        const int text_y = BAR_Y + (BAR_H - 7) / 2;
-        DrawText(canvas, canvas_width, canvas_height, text_x, text_y, LABELS[i], label, 1);
+        const int text_y = BAR_Y + (BAR_H - FONT_LINE_HEIGHT) / 2;
+        DrawTextFont(canvas, canvas_width, canvas_height, text_x, text_y, LABELS[i], label);
     }
 }
 

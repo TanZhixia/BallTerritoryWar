@@ -1,6 +1,7 @@
 #include "render/canvas.h"
 
 #include "core/constants.h"
+#include "render/font_atlas.h"
 
 #include <cmath>
 #include <cstring>
@@ -344,6 +345,64 @@ void DrawText(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
         DrawChar(canvas, canvas_width, canvas_height, cursor_x, y, *p, color, scale);
         cursor_x += 6 * scale;
     }
+}
+
+// ==================== 位图字体（界面中文 / 状态文案） ====================
+// 字形来自 render/font_atlas.h 的数据（生成期由系统字体烘焙），逐像素按覆盖率
+// 与目标画布混合，因此小字号中文在任何背景上都平滑可读。5×7 的 DrawText 仍然
+// 负责场景里的数字/符号（像素味更足），两者可混排。
+
+int MeasureTextFont(const char *utf8)
+{
+    return MeasureFontText(utf8);
+}
+
+int DrawTextFont(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
+                 int x, int y, const char *text, const SDL_FColor &color)
+{
+    const int cr = static_cast<int>(color.r * 255.0f + 0.5f);
+    const int cg = static_cast<int>(color.g * 255.0f + 0.5f);
+    const int cb = static_cast<int>(color.b * 255.0f + 0.5f);
+
+    int pen_x = x;
+    for (const char *p = text; p != nullptr && *p != 0;) {
+        const uint32_t codepoint = DecodeUtf8(&p);
+        const FontGlyph *glyph = FindFontGlyph(codepoint);
+        if (glyph == nullptr) {
+            pen_x += FONT_UNKNOWN_ADVANCE;  // 字表没收录：跳过，不留空白方块
+            continue;
+        }
+        if (glyph->alpha != nullptr && glyph->width > 0 && glyph->height > 0) {
+            for (int gy = 0; gy < glyph->height; ++gy) {
+                const int py = y + glyph->offset_y + gy;
+                if (py < 0 || py >= canvas_height) {
+                    continue;
+                }
+                for (int gx = 0; gx < glyph->width; ++gx) {
+                    const int coverage = glyph->alpha[gy * glyph->width + gx];
+                    if (coverage == 0) {
+                        continue;
+                    }
+                    const int px = pen_x + glyph->offset_x + gx;
+                    if (px < 0 || px >= canvas_width) {
+                        continue;
+                    }
+                    const std::size_t index =
+                        (static_cast<std::size_t>(py) * canvas_width + px) * 4;
+                    const int inv = 255 - coverage;
+                    canvas[index] = static_cast<Uint8>(
+                        (cr * coverage + canvas[index] * inv + 127) / 255);
+                    canvas[index + 1] = static_cast<Uint8>(
+                        (cg * coverage + canvas[index + 1] * inv + 127) / 255);
+                    canvas[index + 2] = static_cast<Uint8>(
+                        (cb * coverage + canvas[index + 2] * inv + 127) / 255);
+                    canvas[index + 3] = 255;
+                }
+            }
+        }
+        pen_x += glyph->advance;
+    }
+    return pen_x;
 }
 
 void DrawHollowCircle(std::vector<Uint8> &canvas, int canvas_width, int canvas_height,
