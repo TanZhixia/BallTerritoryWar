@@ -27,7 +27,7 @@ void InitializeGame(GameState &state)
             const float angle = RandFloat() * 2.0f * static_cast<float>(M_PI);
             ball.vx = std::cos(angle) * g_config.physics.launchSpeed;
             ball.vy = std::sin(angle) * g_config.physics.launchSpeed;
-            ball.radius = PhysicsBallRadius(ball.value, g_config.lift.initialThreshold);
+            ball.radius = g_config.physics.radius;
             ball.value = g_config.physics.initialValue;
             ball.color = PURE_COLORS[color];
             state.physics_balls.push_back(ball);
