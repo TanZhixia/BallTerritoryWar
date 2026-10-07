@@ -36,14 +36,13 @@ constexpr float SURFACE_DROP = 3.5f;   // 水面基准线相对缺口上沿下�
 constexpr float REFRACT_BASE = 10.0f;  // 表层水平折射位移（像素）
 constexpr float REFRACT_DEPTH = 16.0f; // 每加深一层增加的位移
 constexpr float FRESNEL_GAIN = 2.6f;   // 斜率 → 掠射程度
+constexpr float REFLECT_SHIFT = 30.0f; // 反射采样随斜率的水平偏移（越大镜像越"碎"）
+constexpr float ATTEN_DEPTH = 0.12f;   // 光穿过水体后的中性衰减（只有明暗，不带色）
 constexpr int SNAPSHOT_MARGIN = 32;    // 折射采样向左右多取的范围
+constexpr int SNAPSHOT_TOP = 40;       // 向上多取的范围：水面镜像要采样水面上方
 
-// 水色（表层浅青 → 深处深蓝）/ 反射天色 / 泡沫亮线（0-1 线性）
-constexpr float SHALLOW_TINT[3] = {0.24f, 0.62f, 0.78f};
-constexpr float DEEP_TINT[3] = {0.03f, 0.13f, 0.32f};
-constexpr float SKY_TINT[3] = {0.58f, 0.80f, 0.98f};
+// 只有表面高光带一点白；水本身**没有颜色**，颜色全部来自背景（黑色羊毛）的折射与镜像反射
 constexpr float FOAM_TINT[3] = {0.88f, 0.96f, 1.00f};
-constexpr float MURK = 0.46f;  // 水的吸收/散射比例（越大越不透）
 
 inline float Clamp01(float v)
 {
@@ -84,15 +83,17 @@ void DrawLiftWater(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
         return;
     }
 
-    // 先快照缺口附近的一条带：折射要读"水面之后"的像素，边画边读会拖影
+    // 先快照缺口附近的一条带（向上多取一段，供水面的镜像反射采样）：
+    // 折射与反射都要读"别处"的像素，边画边读会拖影
     const int snap_left = std::max(0, left - SNAPSHOT_MARGIN);
     const int snap_right = std::min(canvas_width, right + SNAPSHOT_MARGIN);
+    const int snap_top = std::max(0, top - SNAPSHOT_TOP);
     const int snap_width = snap_right - snap_left;
-    const int snap_height = bottom - top;
+    const int snap_height = bottom - snap_top;
     std::vector<Uint8> snapshot(static_cast<std::size_t>(snap_width) * snap_height * 4);
     for (int row = 0; row < snap_height; ++row) {
         const std::size_t src =
-            (static_cast<std::size_t>(top + row) * canvas_width + snap_left) * 4;
+            (static_cast<std::size_t>(snap_top + row) * canvas_width + snap_left) * 4;
         std::memcpy(&snapshot[static_cast<std::size_t>(row) * snap_width * 4],
                     &canvas[src], static_cast<std::size_t>(snap_width) * 4);
     }
@@ -119,38 +120,44 @@ void DrawLiftWater(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
 
         for (int y = top; y < bottom; ++y) {
             if (static_cast<float>(y) < surface - 0.5f) {
-                continue;  // 水面之上仍是空气：保持背景不变，只在水面行画亮线
+                continue;  // 水面之上仍是空气：保持背景不变
             }
             const float depth = Clamp01((static_cast<float>(y) - surface) /
                                         std::max(1.0f, span - SURFACE_DROP));
             const float shift = slope * (REFRACT_BASE + REFRACT_DEPTH * depth);
             const float sink = height * 0.8f * depth;  // 顺带一点纵向位移，更像透过水体看
             const float sample_x = static_cast<float>(x) + shift - static_cast<float>(snap_left);
-            const float sample_y = static_cast<float>(y - top) + sink;
+            const float sample_y = static_cast<float>(y - snap_top) + sink;
 
             // ---- 3) 折射：取位移后的背景色（双线性，避免整像素台阶）----
             float r = SampleSnapshot(snapshot, snap_width, snap_height, sample_x, sample_y, 0);
             float g = SampleSnapshot(snapshot, snap_width, snap_height, sample_x, sample_y, 1);
             float b = SampleSnapshot(snapshot, snap_width, snap_height, sample_x, sample_y, 2);
 
-            // ---- 4) 水的吸收/散射：随深度由浅青过渡到深蓝 ----
-            const float tint_r = SHALLOW_TINT[0] + (DEEP_TINT[0] - SHALLOW_TINT[0]) * depth;
-            const float tint_g = SHALLOW_TINT[1] + (DEEP_TINT[1] - SHALLOW_TINT[1]) * depth;
-            const float tint_b = SHALLOW_TINT[2] + (DEEP_TINT[2] - SHALLOW_TINT[2]) * depth;
-            r += (tint_r - r) * MURK;
-            g += (tint_g - g) * MURK;
-            b += (tint_b - b) * MURK;
+            // ---- 4) 反射：关于水面镜像采样水面上方（离水面越深，镜像取到越上方）。
+            //      水本身没有颜色，所以反射到的就是背景那块黑色羊毛的色，而不是"天光"。
+            const float mirror_x = static_cast<float>(x) + slope * REFLECT_SHIFT -
+                                   static_cast<float>(snap_left);
+            const float mirror_y = surface - (static_cast<float>(y) - surface) -
+                                   static_cast<float>(snap_top);
+            const float reflect_amount = fresnel * 0.85f;
+            r += (SampleSnapshot(snapshot, snap_width, snap_height, mirror_x, mirror_y, 0) - r) *
+                 reflect_amount;
+            g += (SampleSnapshot(snapshot, snap_width, snap_height, mirror_x, mirror_y, 1) - g) *
+                 reflect_amount;
+            b += (SampleSnapshot(snapshot, snap_width, snap_height, mirror_x, mirror_y, 2) - b) *
+                 reflect_amount;
 
-            // ---- 5) 菲涅耳反射：掠射处反射天光 ----
-            const float reflect = fresnel * 0.72f;
-            r += (SKY_TINT[0] - r) * reflect;
-            g += (SKY_TINT[1] - g) * reflect;
-            b += (SKY_TINT[2] - b) * reflect;
+            // ---- 5) 中性衰减：只把透过的光稍微压暗，不带任何色偏 ----
+            const float atten = 1.0f - ATTEN_DEPTH * depth;
+            r *= atten;
+            g *= atten;
+            b *= atten;
 
-            // ---- 6) 表面亮线 + 镜面高光 ----
+            // ---- 6) 表面高光：水面唯一"自带"的白色，靠菲涅耳掠射驱动 ----
             const float near_surface =
                 std::max(0.0f, 1.0f - std::fabs(static_cast<float>(y) - surface) / 2.0f);
-            const float foam = Clamp01(near_surface * 0.55f + specular * 0.85f);
+            const float foam = Clamp01(near_surface * 0.45f + specular * 0.85f);
             r += (FOAM_TINT[0] - r) * foam;
             g += (FOAM_TINT[1] - g) * foam;
             b += (FOAM_TINT[2] - b) * foam;
