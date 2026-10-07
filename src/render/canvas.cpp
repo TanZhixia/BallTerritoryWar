@@ -394,20 +394,23 @@ int DrawTextFontScaled(std::vector<Uint8> &canvas, int canvas_width, int canvas_
                     }
                     const float sx =
                         (static_cast<float>(dx) + 0.5f) * source_per_dest - 0.5f;
-                    const float coverage = SampleGlyphCoverage(
-                        glyph->alpha, glyph->width, glyph->height, sx, sy, source_per_dest);
-                    if (coverage <= 0.003f) {
+                    // 采样结果与未缩放路径同为 0-255 的覆盖率；用整数混合，
+                    // 保证结果恒在 [0,255]（浮点越界再转 Uint8 会溢出成随机色）
+                    const int coverage = static_cast<int>(
+                        SampleGlyphCoverage(glyph->alpha, glyph->width, glyph->height,
+                                            sx, sy, source_per_dest) + 0.5f);
+                    if (coverage <= 0) {
                         continue;
                     }
                     const std::size_t index =
                         (static_cast<std::size_t>(py) * canvas_width + px) * 4;
-                    const float inv = 1.0f - coverage;
+                    const int inv = 255 - coverage;
                     canvas[index] = static_cast<Uint8>(
-                        static_cast<float>(cr) * coverage + canvas[index] * inv + 0.5f);
+                        (cr * coverage + canvas[index] * inv + 127) / 255);
                     canvas[index + 1] = static_cast<Uint8>(
-                        static_cast<float>(cg) * coverage + canvas[index + 1] * inv + 0.5f);
+                        (cg * coverage + canvas[index + 1] * inv + 127) / 255);
                     canvas[index + 2] = static_cast<Uint8>(
-                        static_cast<float>(cb) * coverage + canvas[index + 2] * inv + 0.5f);
+                        (cb * coverage + canvas[index + 2] * inv + 127) / 255);
                     canvas[index + 3] = 255;
                 }
             }
