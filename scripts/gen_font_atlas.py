@@ -29,8 +29,9 @@ BASELINE = 15         # src/render/font_atlas.h 的 FONT_BASELINE
 # ---- 收录的字符 ----
 # 底部武器格 + 右侧 HUD（队伍名 / 护盾 / 弹药 / 复活中 / 已灭）
 CJK = "霰弹机枪护盾大球狙击红绿蓝黄队药复活中已灭"
-# HUD 里的数字与单位（FormatValue 输出 0-9 / k / M / B，百分比另有 . 和 %）
-ASCII = "0123456789.%kMB- "
+# 画面里的数字与单位（FormatValue 输出 0-9 / k / M / B，HUD 百分比另有 . 和 %），
+# 以及倍率带的 ×8 / ×4 / ×2（× 为 U+00D7，另收一个小写 x 备用）
+ASCII = "0123456789.%kMBx×- "
 
 OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "..", "src", "render", "font_atlas.cpp")

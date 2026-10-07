@@ -140,11 +140,12 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
              LEFT_AREA_WIDTH - (GAP_CENTER_X + GAP_HALF), LEFT_BORDER_WIDTH,
              left_border_color);
 
-    // 横线上的图案：左右各三段 x8 | x4 | x2，中间保留缺口
+    // 横线上的图案：左右各三段 ×8 | ×4 | ×2，中间保留缺口
     constexpr int SEPARATOR_X[] = {75, 150, 225, 375, 450, 525};
+    constexpr int ZONE_WIDTH = 75;       // 每个倍率分区的宽度（文字在其中居中）
     const SDL_FColor separator_color = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
     const SDL_FColor label_color = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};
-    constexpr int LABEL_Y = WALL_Y - 7;  // 5×7 字体放大 2 倍，高 14px，垂直居中
+    constexpr int LABEL_Y = WALL_Y - FONT_LINE_HEIGHT / 2;  // 行高 18 居中于 20px 带
 
     for (int separator_x : SEPARATOR_X) {
         FillRect(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
@@ -152,13 +153,21 @@ void BuildStaticScene(std::vector<Uint8> &canvas, std::vector<StaticCircle> &blo
                  separator_color);
     }
 
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 25, LABEL_Y, "x8", label_color, 2);
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 100, LABEL_Y, "x4", label_color, 2);
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 175, LABEL_Y, "x2", label_color, 2);
-
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 400, LABEL_Y, "x2", label_color, 2);
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 475, LABEL_Y, "x4", label_color, 2);
-    DrawText(canvas, WINDOW_WIDTH, WINDOW_HEIGHT, 550, LABEL_Y, "x8", label_color, 2);
+    struct BandLabel
+    {
+        int zone_x;        // 分区左边界
+        const char *text;  // ×8 / ×4 / ×2
+    };
+    const BandLabel band_labels[] = {
+        {0, "×8"}, {75, "×4"}, {150, "×2"},
+        {375, "×2"}, {450, "×4"}, {525, "×8"},
+    };
+    for (const BandLabel &band : band_labels) {
+        const int text_width = MeasureTextFont(band.text);
+        DrawTextFont(canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                     band.zone_x + (ZONE_WIDTH - text_width) / 2, LABEL_Y,
+                     band.text, label_color);
+    }
 
     // 底部武器栏（5 格：SHOTGUN / MACHINEGUN / SHIELD / BIGBALL / SNIPER）
     DrawBottomBar(canvas, WINDOW_WIDTH, WINDOW_HEIGHT);

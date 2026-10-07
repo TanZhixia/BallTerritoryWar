@@ -8,6 +8,7 @@
 #include "game/scene.h"
 #include "game/simulation.h"
 #include "render/canvas.h"
+#include "render/font_atlas.h"
 #include "render/hud.h"
 #include "render/particles.h"
 
@@ -121,13 +122,11 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
                         ball.x, ball.y, ball.radius, ball.new_color);
         }
         const std::string big_value = FormatValue(ball.value);
-        const int big_text_scale = ball.radius >= 60.0f ? 3 : 2;
-        const int big_text_width =
-            static_cast<int>(big_value.size()) * 6 * big_text_scale;
-        DrawText(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                 static_cast<int>(ball.x) - big_text_width / 2,
-                 static_cast<int>(ball.y) - (7 * big_text_scale) / 2,
-                 big_value.c_str(), big_text_color, big_text_scale);
+        const int big_text_width = MeasureTextFont(big_value.c_str());
+        DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                     static_cast<int>(ball.x) - big_text_width / 2,
+                     static_cast<int>(ball.y) - FONT_LINE_HEIGHT / 2,
+                     big_value.c_str(), big_text_color);
     }
     // 气泡拖尾画在物理球主体之下，被球体盖住一部分更自然
     UpdateBubbles(state.bubbles, 1.0f / 60.0f);
@@ -147,15 +146,15 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
                          NEW_COLORS[color], 4.0f);
 
         const std::string shield_text = FormatValue(state.shield_remaining[color]);
-        const int shield_text_width = static_cast<int>(shield_text.size()) * 12;
+        const int shield_text_width = MeasureTextFont(shield_text.c_str());
         const int shield_text_y =
             (color == 0 || color == 1)
                 ? static_cast<int>(center_y) + static_cast<int>(g_config.shield.radius) + 10
-                : static_cast<int>(center_y) - static_cast<int>(g_config.shield.radius) - 18;
-        DrawText(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                 static_cast<int>(center_x) - shield_text_width / 2,
-                 shield_text_y,
-                 shield_text.c_str(), ammo_text_color, 2);
+                : static_cast<int>(center_y) - static_cast<int>(g_config.shield.radius) -
+                      FONT_LINE_HEIGHT;
+        DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                     static_cast<int>(center_x) - shield_text_width / 2,
+                     shield_text_y, shield_text.c_str(), ammo_text_color);
     }
 
     // 炮塔：基地中心一个圆 + 随发射方向旋转的长方形炮管
@@ -183,11 +182,11 @@ void RenderGame(GameState &state, const std::vector<Uint8> &canvas,
         char ammo_text[32];
         std::snprintf(ammo_text, sizeof(ammo_text), "%lld",
                       static_cast<long long>(state.machine_gun_ammo[color]));
-        const int text_width = static_cast<int>(std::strlen(ammo_text)) * 12;
-        DrawText(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
-                 static_cast<int>(center_x) - text_width / 2,
-                 static_cast<int>(center_y) - 8,
-                 ammo_text, ammo_text_color, 2);
+        const int text_width = MeasureTextFont(ammo_text);
+        DrawTextFont(display_canvas, WINDOW_WIDTH, WINDOW_HEIGHT,
+                     static_cast<int>(center_x) - text_width / 2,
+                     static_cast<int>(center_y) - FONT_LINE_HEIGHT / 2,
+                     ammo_text, ammo_text_color);
     }
 
     // 复活飞行中的物理球画在所有 UI 之上：它要横穿战场飞到炮塔，动画必须醒目

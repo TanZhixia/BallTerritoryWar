@@ -5,6 +5,7 @@
 #include "core/palette.h"
 #include "game/scene.h"
 #include "render/canvas.h"
+#include "render/font_atlas.h"
 #include "render/particles.h"
 
 #include <algorithm>
@@ -669,12 +670,11 @@ void DrawOnePhysicsBall(std::vector<Uint8> &canvas, int canvas_width, int canvas
 {
     PaintCircle(canvas, canvas_width, canvas_height, ball.x, ball.y, ball.radius, ball.color);
     const std::string value_text = FormatValue(ball.value);
-    constexpr int TEXT_SCALE = 2;
-    const int text_width = static_cast<int>(value_text.size()) * 6 * TEXT_SCALE;
-    DrawText(canvas, canvas_width, canvas_height,
-             static_cast<int>(ball.x) - text_width / 2,
-             static_cast<int>(ball.y) - (7 * TEXT_SCALE) / 2,
-             value_text.c_str(), text_color, TEXT_SCALE);
+    const int text_width = MeasureTextFont(value_text.c_str());
+    DrawTextFont(canvas, canvas_width, canvas_height,
+                 static_cast<int>(ball.x) - text_width / 2,
+                 static_cast<int>(ball.y) - FONT_LINE_HEIGHT / 2,
+                 value_text.c_str(), text_color);
 }
 }  // namespace
 
