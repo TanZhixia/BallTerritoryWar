@@ -14,8 +14,7 @@ void DrawBottomBar(std::vector<Uint8> &canvas, int canvas_width, int canvas_heig
     constexpr int BAR_H = 20;
     const SDL_FColor border = SDL_FColor{0.5f, 0.5f, 0.5f, 1.0f};
     const SDL_FColor sep = SDL_FColor{0.1f, 0.1f, 0.1f, 1.0f};
-    // 武器名用深色：灰色条底上深色中文比浅色更清楚（与分隔线同色系）
-    const SDL_FColor label = SDL_FColor{0.12f, 0.12f, 0.14f, 1.0f};
+    const SDL_FColor label = SDL_FColor{0.9f, 0.9f, 0.9f, 1.0f};  // 武器名用浅色（同原来）
     FillRect(canvas, canvas_width, canvas_height, 0, BAR_Y, BAR_W, BAR_H, border);
 
     static const int EDGES[] = {0, 120, 240, 360, 480, 600};
