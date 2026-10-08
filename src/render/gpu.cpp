@@ -43,15 +43,37 @@ struct UIUniform
     float output_width;
     float output_height;
     float padding;
+    float lens_count;
+    float lens_range;
+    float lens_strength;
+    float lens_pad;
+    float lens_x[16];
+    float lens_y[16];
 };
 
 fragment float4 fs_grid(VSOutput in [[stage_in]], constant UIUniform &uniform [[buffer(0)]])
 {
     float px = in.uv.x * uniform.logical_width;
     float py = (1.0 - in.uv.y) * uniform.logical_height;
-    float gx = px - uniform.frame_x;
-    float gy = py - uniform.frame_y;
+    float2 p = float2(px - uniform.frame_x, py - uniform.frame_y);
 
+    // ---- 狙击引力黑洞：把网格采样点朝每个黑洞方向径向拉近，
+    //      越靠近中心拉得越多（falloff²），网格线看起来被引力吸向黑洞 ----
+    const int lens_n = int(uniform.lens_count);
+    for (int i = 0; i < lens_n; ++i) {
+        float2 c = float2(uniform.lens_x[i] - uniform.frame_x,
+                          uniform.lens_y[i] - uniform.frame_y);
+        float2 d = p - c;
+        const float r = length(d);
+        if (r >= uniform.lens_range || r < 0.001) {
+            continue;
+        }
+        const float falloff = 1.0 - r / uniform.lens_range;  // 中心 1 → 边缘 0
+        p += (d / r) * (uniform.lens_strength * falloff * falloff);
+    }
+
+    const float gx = p.x;
+    const float gy = p.y;
     if (gx < 0.0 || gx >= uniform.frame_size || gy < 0.0 || gy >= uniform.frame_size) {
         discard_fragment();
     }

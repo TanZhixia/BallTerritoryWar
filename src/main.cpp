@@ -292,6 +292,11 @@ int main(int argc, char *argv[])
     uniform.output_width = output_width;
     uniform.output_height = output_height;
     uniform.padding = 0.0f;
+    // 狙击引力透镜参数（每帧只更新狙击位置，见主循环）
+    uniform.lens_count = 0.0f;
+    uniform.lens_range = LENS_RANGE_PIXELS;
+    uniform.lens_strength = LENS_STRENGTH_PIXELS;
+    uniform.lens_pad = 0.0f;
 
     bool running = true;
     Uint64 fps_frame_count = 0;
@@ -405,6 +410,23 @@ int main(int argc, char *argv[])
             SDL_SubmitGPUCommandBuffer(command_buffer);
             submit_ms_total += SDL_GetTicks() - submit_start;
             continue;
+        }
+
+        // 狙击引力黑洞：把当前场上狙击位置喂给 fs_grid，让战场网格线做引力透镜扭曲
+        {
+            int lens_n = 0;
+            for (const BallObject &ball : state.balls) {
+                if (!ball.is_sniper || ball.dying) {
+                    continue;
+                }
+                if (lens_n >= MAX_LENS_SNIPERS) {
+                    break;
+                }
+                uniform.lens_x[lens_n] = ball.x;
+                uniform.lens_y[lens_n] = ball.y;
+                ++lens_n;
+            }
+            uniform.lens_count = static_cast<float>(lens_n);
         }
 
         SDL_PushGPUFragmentUniformData(command_buffer, 0, &uniform, sizeof(uniform));

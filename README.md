@@ -58,7 +58,7 @@
 main 循环（60fps）
   ├─ StepGame()      推进一帧模拟，写入持久画布 canvas
   ├─ RenderGame()    canvas → display_canvas，叠加特效/UI
-  ├─ 上传纹理 → fs_canvas（饱和/对比/辉光/暗角）+ fs_grid（战场网格）
+  ├─ 上传纹理 → fs_canvas（饱和/对比/辉光/暗角）+ fs_grid（战场网格 + 狙击引力透镜）
   └─ 可选：GPU 回读 → ffmpeg（output.mp4，可混入 ~/.ball/music）
 遥测线程：/tmp/btw_telemetry.sock 推送 JSON，接收 SETCONFIG 热更新
 ```
@@ -247,6 +247,10 @@ shotgun / sniper / bigBall / shield / combat / gameOver / startup）。解析器
   `DrawTextFontScaled()` 按「相对主字号的缩放」绘制——放大时改用大号表缩小采样
   （区域平均抗锯齿），两套表按基线对齐；比例写在 `render.cpp` 的
   `text_scale = max(0.75, 半径 / 37.6)`，改这里即可调文字与球的大小关系。
+- **狙击引力黑洞扭曲战场网格**：`fs_grid` 每帧接收场上狙击位置（最多 16 个，见
+  `render/gpu.h` 的 `MAX_LENS_SNIPERS`），把网格采样点朝每个黑洞径向拉近、越靠近中心
+  位移越大（falloff²），网格线看起来被引力吸弯。影响半径 / 最大位移在 `render/gpu.h`
+  的 `LENS_RANGE_PIXELS` / `LENS_STRENGTH_PIXELS`。仅显示层（GPU 叠加），不改玩法。
 - 领土采样为战场区域隔 4 像素（1/16 样本），约 6.25 万样本。
 - 领土闪光每帧遍历 100 万像素缓冲（仅显示层）。
 - 录像依赖外部 ffmpeg；未安装时不报错但不会产生文件。
