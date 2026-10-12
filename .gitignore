@@ -11,6 +11,10 @@ build/
 # 游戏运行日志（启动器重定向输出）
 game.log
 
+# Web 启动器（launcher-web/）
+launcher-web/node_modules/
+launcher-web/dist/
+
 # 重构前的原始工程（保留其独立 git 历史，不纳入本仓库；
 # 如需一起纳入：删除 demo/BallTerritoryWar/.git 后去掉本行）
 demo/

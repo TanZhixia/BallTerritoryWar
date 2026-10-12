@@ -39,14 +39,5 @@ target_include_directories(main PRIVATE src)
 target_compile_definitions(main PRIVATE BTW_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(main PRIVATE SDL3::SDL3)
 
-# CLI 启动器（终端 UI + 子命令）。纯 POSIX，不依赖 SDL3。
-add_executable(btw-launcher
-    launcher/src/main.cpp
-    launcher/src/config.cpp
-    launcher/src/json.cpp
-    launcher/src/project.cpp
-    launcher/src/telemetry.cpp
-    launcher/src/term.cpp
-    launcher/src/tui.cpp
-)
-target_include_directories(btw-launcher PRIVATE launcher/src)
+# 启动器已改为 Web 版（Vite + React + Node 桥接后端），独立于本 CMake 工程：
+# 见 launcher-web/（npm run dev / build / start，端口 3070），不再产出 btw-launcher。

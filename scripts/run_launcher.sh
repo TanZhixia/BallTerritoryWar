@@ -1,9 +1,7 @@
 #!/bin/bash
-# 构建并启动 CLI 启动器（终端界面）
+# 启动 Web 启动器（Vite + React 前端 + Node 桥接后端，入口 http://localhost:3070）
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cmake -S "$ROOT" -B "$ROOT/build" -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build "$ROOT/build" --target btw-launcher \
-    -j"$( (command -v sysctl >/dev/null && sysctl -n hw.ncpu) || nproc || echo 4)"
-cd "$ROOT"
-exec ./build/btw-launcher "$@"
+cd "$ROOT/launcher-web"
+[ -d node_modules ] || npm install
+exec npm run dev

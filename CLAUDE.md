@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 给接手本仓库的 Claude（或任何 AI 协作者）的项目说明。**动代码前先读完这一份**。
-人类可读的玩法/配置说明在 `README.md`，终端启动器说明在 `launcher/README.md`，三者互补。
+人类可读的玩法/配置说明在 `README.md`，Web 启动器说明在 `launcher-web/README.md`，三者互补。
 
 ---
 
@@ -15,7 +15,8 @@
 
 - 语言/依赖：C++17 + SDL3（GPU API + MSL 着色器），**只在 macOS 上构建过**；
   刻意**不依赖 SDL3_ttf**（所有文字都是生成期烘焙的位图字形，见第 6 节）。
-- 产物：`build/main`（游戏本体）、`build/btw-launcher`（纯 POSIX 终端启动器）。
+- 产物：`build/main`（游戏本体，CMake 构建）；启动器是 `launcher-web/` 下的独立
+  Web 工程（Vite + React + Node，端口 3070），不随 CMake 构建。
 
 ---
 
@@ -24,7 +25,7 @@
 ```bash
 scripts/build.sh                 # cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 scripts/run.sh [参数]            # 编译并启动（默认录到 output.mp4，可混入 ~/.ball/music 的背景乐）
-scripts/run_launcher.sh          # 终端启动器（TUI：状态面板 / 配置编辑 / 启动游戏）
+scripts/run_launcher.sh          # 启动 Web 启动器（npm install → npm run dev，端口 3070）
 ./build/main --help              # 看运行参数
 python3 scripts/gen_font_atlas.py   # 重新烘焙位图字形（需要 Pillow）
 ```
@@ -63,7 +64,7 @@ src/render/
   render.cpp             RenderGame：每帧把 canvas 合成进 display_canvas 的唯一入口
   gpu.cpp                三段 MSL 与 GPU 资源辅助
 src/io/output.cpp        输出名/音乐播放列表/ffmpeg 管道/像素格式转换
-launcher/                 终端启动器（独立目标 btw-launcher，纯 POSIX）
+launcher-web/             Web 启动器（Vite + React 前端 + Node 桥接后端，端口 3070；独立 npm 工程）
 scripts/                  build.sh / run.sh / run_launcher.sh / gen_font_atlas.py
 demo/                     重构前的旧工程，独立 git 历史、已 gitignore，只读参考，别改
 ```
@@ -128,7 +129,7 @@ main while 循环（默认限帧 60fps）
 ### 配置
 - 配置项有**三处真相**必须同步：`src/core/config.h`（结构体默认值）、`src/core/config.cpp`
   （默认 YAML 模板 + YAML 解析 + `ApplyConfigKey` 热更新分支）、
-  `launcher/src/config.cpp` 的 `BuildSchema()`。当前共 11 组 56 键。
+  `launcher-web/server/schema.ts`。当前共 11 组 56 键。
 - 充当除数/步长的配置项要加进 `SanitizeDivisors()`（防 `inf` 转 int 的 UB 与死循环）。
 - `SETCONFIG` 热更新**不写回文件**；写回 YAML 是启动器的事。
 
@@ -144,7 +145,8 @@ main while 循环（默认限帧 60fps）
 
 ### 遥测与启动器
 - 游戏每 0.5s 往 `/tmp/btw_telemetry.sock` 推一行 JSON；启动器连上去解析。
-- 改 JSON 字段 = 同时改 `src/core/telemetry.cpp` 与 `launcher/src/tui.cpp`，两边都要编译验证。
+- 改 JSON 字段 = 同时改 `src/core/telemetry.cpp`、`launcher-web/server/types.ts` 与
+  `launcher-web/src/lib/types.ts`，三处都要同步。
 
 ---
 
@@ -163,7 +165,8 @@ main while 循环（默认限帧 60fps）
 5. **微基准**：新特效单独链接计时（例如水面 0.036 ms/帧）。**不要**用整体帧率波动判断开销，
    帧率会被环境噪声干扰（见过同一份代码 55~59 FPS 跳动）。
 
-TUI 可以用伪终端驱动脚本化验证（写按键字节 → 读屏幕内容）。
+Web 启动器可离线验证后端：`launcher-web/` 里 `npm run typecheck`，并对 `server/yaml.ts`
+的读写做 diff 测试（改几项后除被改值外逐字节不变）；界面用浏览器/无头浏览器驱动。
 
 ---
 

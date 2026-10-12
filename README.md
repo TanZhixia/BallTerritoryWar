@@ -47,7 +47,7 @@
 │   │   └── gpu.{h,cpp}     # MSL 着色器与 SDL3 GPU 资源辅助
 │   └── io/
 │       └── output.{h,cpp}  # ffmpeg 录像管道 + 背景音乐播放列表
-├── launcher/               # CLI 启动器（终端 UI + 子命令，产物 build/btw-launcher）
+├── launcher-web/           # Web 启动器（Vite + React 前端 + Node 桥接后端，端口 3070）
 ├── demo/                   # 重构前的原始 demo（只读参考，未删除）
 └── build/                  # 构建产物（已 gitignore）
 ```
@@ -86,13 +86,13 @@ scripts/run.sh -d 30                 # 跑 30 秒后正常收尾退出
 # 手动构建
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 
-# 启动器（终端 UI，无第三方依赖）
+# 启动器（Web 控制台；首次会自动 npm install 再打开 http://localhost:3070）
 scripts/run_launcher.sh
 ```
 
-依赖：SDL3（`brew install sdl3`）、CMake ≥ 3.16、C++17 编译器；
-ffmpeg 可选（缺失则录像静默失效，游戏本身照常运行）。两个可执行文件（`build/main`
-与 `build/btw-launcher`）由同一个 CMake 工程构建。
+依赖：SDL3（`brew install sdl3`）、CMake ≥ 3.16、C++17 编译器（游戏）；
+Node ≥ 18（Web 启动器）；ffmpeg 可选（缺失则录像静默失效，游戏本身照常运行）。
+游戏 `build/main` 由 CMake 构建；Web 启动器是 `launcher-web/` 下的独立 npm 工程。
 
 ### 命令行参数
 
@@ -109,52 +109,30 @@ ffmpeg 可选（缺失则录像静默失效，游戏本身照常运行）。两�
 
 ---
 
-## CLI 启动器（终端 UI）
+## Web 启动器（launcher-web/）
 
-`scripts/run_launcher.sh`（或 `./build/btw-launcher`）打开终端界面：
+`scripts/run_launcher.sh`（或进 `launcher-web/` 跑 `npm run dev`）打开现代 Web 控制台，
+入口 **http://localhost:3070**。浏览器无法直连 Unix 域套接字，所以启动器分为两层：
 
-```
- Ball Territory War  CLI 启动器                    ● LIVE   游戏运行中 · pid 8123
-╭ 环境 ──────────────────────────────────────────────────────────────────────╮
-│ 项目  /path/to/BallTerritoryWar                                            │
-│ 游戏  ● build/main 已构建   录像  ● ffmpeg 可用   音乐  ● 3 首              │
-╰────────────────────────────────────────────────────────────────────────────╯
-╭ 实时战况 · 遥测 /tmp/btw_telemetry.sock ───────────────────────────────────╮
-│ 队伍  领土占比                        百分比  大球  护盾       弹药        │
-│ 红队  ███████░░░░░░░░░░░░░░░░░░░░░░░  23.4%   2     9.80M      246.9k      │
-│ 绿队  █████░░░░░░░░░░░░░░░░░░░░░░░░░  18.0%   1     10.00M     250.0k      │
-│ 蓝队  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  已灭    3     -          -           │
-│ 总球数 453    物理球 16    时间 2:36    FPS 60.2                           │
-╰────────────────────────────────────────────────────────────────────────────╯
-╭ 启动选项 ──────────────────────────────────────────────────────────────────╮
-│ > 输出文件            output.mp4                                           │
-│ 录制视频 / 背景音乐 / 限制 60fps / 武器升力：恒定开启                      │
-╰────────────────────────────────────────────────────────────────────────────╯
-  Enter / o 编辑输出文件名   l 启动   b 构建   c 配置   r 刷新环境   q 退出
-```
+- **前端**：Vite + React + TypeScript + Tailwind CSS v4 + Radix + recharts
+- **后端**（Node，仅监听 127.0.0.1）：桥接 `~/.ball/config.yaml`、`~/.ball/launcher.conf`
+  与遥测 socket `/tmp/btw_telemetry.sock`，并负责构建 / 启动 / 日志
 
-终端支持真彩（`COLORTERM=truecolor`）时自动启用 24bit 主题：深色面板底色、队伍配色与
-游戏显示层一致、领土进度条、状态徽标；不支持的终端自动退回 16 色，也可用
-`--truecolor` / `--16color` / `--no-color`（或 `NO_COLOR`）强制。超宽终端下内容限宽
-120 列居中。
-
-- 主面板：`Enter`/`o` 编辑录像输出文件名、`l` 启动（二次确认）、`b` 构建、`c` 配置、
-  `q` 退出；录制视频 / 背景音乐 / 限制 60fps / 武器升力恒定开启（不传任何关闭参数）
-- 配置面板：11 组 56 键，`Enter` 编辑（越界自动夹取）、`w` 写入 YAML 并热更新、
-  `a` 仅热更新、`d` 恢复默认、`r` 重读、`Esc` 返回
-- 启动游戏时其 stdout/stderr 重定向到 `build/game.log`，界面底部实时显示末尾几行
-- 非交互子命令（脚本/CI 可用，行为与界面一致）：
+界面包含：环境状态、四队实时战况（领土条 / 大球 / 护盾 / 弹药 / FPS）与领土曲线、
+启动选项（录像输出文件名）、构建 / 启动（二次确认）、11 组 56 键配置编辑（越界夹取、
+脏标记、「重启」徽标；「保存并热更新」/「仅热更新」/「重读」/「恢复默认」），
+以及游戏日志与构建输出的实时面板。行为与旧 CLI 启动器等价。
 
 ```bash
-./build/btw-launcher status                    # 环境状态
-./build/btw-launcher build                     # cmake + make
-./build/btw-launcher args                      # 打印将传给游戏的命令行（不启动）
-./build/btw-launcher launch --dry-run          # 去掉 --dry-run 才真的启动
-./build/btw-launcher config list|get|set|apply|reset
-./build/btw-launcher telemetry -s 3 [--raw]    # 打印遥测帧
+cd launcher-web
+npm install
+npm run dev     # 开发：Vite 3070（HMR）+ 后端 3071，/api 由 Vite 代理
+npm run build   # 生产：产出 dist/
+npm start       # 生产：后端在 3070 同端口服务前端 + API
+npm run typecheck
 ```
 
-细节见 `launcher/README.md`。
+细节见 `launcher-web/README.md`。
 
 ---
 
@@ -287,6 +265,9 @@ shotgun / sniper / bigBall / shield / combat / gameOver / startup）。解析器
   实时战况、61 键配置编辑与热更新、一键构建；新增：启动二次确认、
   游戏日志重定向与界面内查看、非交互子命令（便于脚本化与自动化测试）。
   启动选项只保留录像输出文件名，录制/音乐/限帧/武器升力改为恒定开启
+- **启动器（再次）重写为 Web 版**：C++ 终端 UI 已删除，改为 `launcher-web/`
+  （Vite + React 前端 + Node 桥接后端，端口 3070，见上文「Web 启动器」；行为等价）。
+  配置 schema（11 组 56 键）现由 `launcher-web/server/schema.ts` 维护
 - 升力阈值上限（`lift.maxThreshold` / `lift.weaponMax`）已删除：阈值按 `growthPerSecond`
   无限增长。旧配置文件里残留的这两项会被游戏忽略（解析器不认识的多余键不影响加载）
 

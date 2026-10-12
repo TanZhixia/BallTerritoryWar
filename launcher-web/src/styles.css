@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+/* ==================== 设计令牌 ==================== */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+
+  --color-bg: #05060b;
+  --color-surface: #0c0f18;
+  --color-surface-2: #121826;
+  --color-surface-3: #182034;
+  --color-line: #222b40;
+  --color-line-2: #2e3a55;
+  --color-ink: #e9edf7;
+  --color-mute: #97a1ba;
+  --color-faint: #5c667c;
+
+  /* 与游戏显示层 NEW_FRAME_PALETTE 一致 */
+  --color-team-red: #ff9696;
+  --color-team-green: #64ff64;
+  --color-team-blue: #b4d2ff;
+  --color-team-yellow: #fff08c;
+
+  --color-accent: #6ea8ff;
+  --color-accent-2: #9d7bff;
+  --color-ok: #46e08a;
+  --color-warn: #ffcf5c;
+  --color-err: #ff6b6b;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(110, 168, 255, 0.1), transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, rgba(157, 123, 255, 0.1), transparent 55%),
+      var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-2) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-line-2);
+    border-radius: 999px;
+  }
+}
+
+@layer components {
+  /* 玻璃拟态面板 */
+  .panel {
+    background: linear-gradient(180deg, rgba(18, 24, 38, 0.86), rgba(12, 15, 24, 0.86));
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.03) inset,
+      0 18px 40px -24px rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+  }
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mute);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--color-line-2);
+    font-size: 11px;
+    color: var(--color-mute);
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    opacity: 0.65;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+.live-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
